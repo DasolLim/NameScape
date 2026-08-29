@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     photon_url: str = ""
     wikidata_url: str = "https://www.wikidata.org"
     secret_key: str = "dev-only-change-me"
+    anthropic_api_key: str = ""
+    blocklist_path: str = "data/blocklist.txt"
 
 
 settings = Settings()

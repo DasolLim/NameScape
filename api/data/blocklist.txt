@@ -1,0 +1,10 @@
+# PLACEHOLDER — MUST BE REPLACED BEFORE LAUNCH.
+#
+# This file is deliberately not a curated slur list. Source one from a
+# maintained external project (e.g. LDNOOBW, Shutterstock's list, or a
+# vendor feed) and keep it updated; hand-authoring one here would be both
+# incomplete and unmaintainable.
+#
+# Format: one lowercase term per line. Comments start with '#'.
+# Matching happens after normalisation and leetspeak folding.
+badword
