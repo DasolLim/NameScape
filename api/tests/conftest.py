@@ -18,7 +18,13 @@ async def db() -> AsyncIterator[AsyncSession]:
     engine = create_async_engine(settings.database_url, poolclass=NullPool)
     connection = await engine.connect()
     transaction = await connection.begin()
-    session = async_sessionmaker(bind=connection, expire_on_commit=False)()
+    # create_savepoint keeps a route handler's session.commit() inside this
+    # transaction, so committing endpoints cannot escape the rollback.
+    session = async_sessionmaker(
+        bind=connection,
+        expire_on_commit=False,
+        join_transaction_mode="create_savepoint",
+    )()
     try:
         yield session
     finally:
