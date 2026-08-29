@@ -7,6 +7,7 @@ from sqlalchemy import (
     CHAR,
     BigInteger,
     DateTime,
+    ForeignKey,
     Integer,
     SmallInteger,
     String,
@@ -49,3 +50,15 @@ class Place(Base):
     tier: Mapped[int] = mapped_column(SmallInteger)
     population: Mapped[int] = mapped_column(Integer, default=0)
     etymology: Mapped[str | None] = mapped_column(Text)
+
+
+class Discovery(Base):
+    """A user's claim on a place. The unique place_id is what makes it scarce."""
+
+    __tablename__ = "discoveries"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    place_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("places.id"), unique=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    caption: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
