@@ -4,6 +4,8 @@ import GlobeCanvas from './GlobeCanvas'
 import { fetchHealth, healthSummary, type Health } from './api/health'
 import type { SearchResult } from './api/search'
 import type { GlobeHandle, PlaceRef } from './globe'
+import SignInSheet from './auth/SignInSheet'
+import { useAuth } from './auth/store'
 import SearchOverlay from './search/SearchOverlay'
 
 function toPlaceRef(place: SearchResult): PlaceRef {
@@ -23,11 +25,16 @@ export default function App() {
   const [health, setHealth] = useState<Health | null>(null)
   const globe = useRef<GlobeHandle | null>(null)
 
+  const user = useAuth((state) => state.user)
+  const loadAuth = useAuth((state) => state.load)
+  const openSignIn = useAuth((state) => state.openSignIn)
+
   useEffect(() => {
     fetchHealth()
       .then(setHealth)
       .catch(() => setHealth(null))
-  }, [])
+    void loadAuth()
+  }, [loadAuth])
 
   const onReady = useCallback((handle: GlobeHandle) => {
     globe.current = handle
@@ -48,7 +55,21 @@ export default function App() {
             {health ? healthSummary(health) : 'checking\u2026'}
           </p>
         </div>
-        <SearchOverlay onSelect={onSelect} />
+        <div className="flex items-center gap-3">
+          <SearchOverlay onSelect={onSelect} />
+          {user ? (
+            <span className="pointer-events-auto text-sm text-[#9B9484]">@{user.username}</span>
+          ) : (
+            <button
+              type="button"
+              onClick={openSignIn}
+              className="pointer-events-auto rounded-full px-4 py-2.5 text-sm text-[#9B9484] hover:text-[#F5F1E8]"
+            >
+              Sign in
+            </button>
+          )}
+        </div>
+        <SignInSheet />
       </div>
     </main>
   )

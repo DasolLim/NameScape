@@ -12,4 +12,5 @@ export const handlers = [
   http.get('/api/health', () =>
     HttpResponse.json<Health>({ status: 'ok', db: true, redis: true }),
   ),
+  http.get('/api/auth/me', () => HttpResponse.json(null)),
 ]
