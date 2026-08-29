@@ -40,7 +40,7 @@ async def _redis_reachable() -> bool:
         await client.aclose()
 
 
-@app.get("/health")
+@app.get("/api/health")
 async def health() -> Health:
     db_up = await _postgres_reachable()
     redis_up = await _redis_reachable()
