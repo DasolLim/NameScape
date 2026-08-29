@@ -15,7 +15,15 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest", "pytest-asyncio", "mypy", "ruff"]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "mypy",
+    "ruff",
+    "fakeredis>=2.37.1",
+    "pytest-cov>=7.1.0",
+    "schemathesis>=4.25.2",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -41,7 +49,12 @@ select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["app"]
+source = ["app/modules"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
