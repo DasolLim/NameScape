@@ -12,6 +12,7 @@ dependencies = [
     "redis",
     "pydantic-settings",
     "httpx",
+    "geoalchemy2>=0.20.0",
 ]
 
 [dependency-groups]

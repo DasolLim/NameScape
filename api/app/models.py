@@ -1,8 +1,19 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, func
-from sqlalchemy.dialects.postgresql import UUID
+from geoalchemy2 import Geography
+from geoalchemy2.elements import WKBElement
+from sqlalchemy import (
+    CHAR,
+    BigInteger,
+    DateTime,
+    Integer,
+    SmallInteger,
+    String,
+    Text,
+    func,
+)
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -16,3 +27,25 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True)
     username_locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Place(Base):
+    """A gazetteer record. Never user-authored; every discovery anchors to one."""
+
+    __tablename__ = "places"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    geonames_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
+    wof_id: Mapped[int | None] = mapped_column(BigInteger)
+    wikidata_id: Mapped[str | None] = mapped_column(Text)
+    name: Mapped[str] = mapped_column(Text)
+    name_normalized: Mapped[str] = mapped_column(Text)
+    alternate_names: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
+    feature_class: Mapped[str] = mapped_column(CHAR(1))
+    feature_code: Mapped[str] = mapped_column(Text)
+    country_code: Mapped[str | None] = mapped_column(CHAR(2))
+    admin1: Mapped[str | None] = mapped_column(Text)
+    centroid: Mapped[WKBElement] = mapped_column(Geography("POINT", srid=4326))
+    tier: Mapped[int] = mapped_column(SmallInteger)
+    population: Mapped[int] = mapped_column(Integer, default=0)
+    etymology: Mapped[str | None] = mapped_column(Text)
