@@ -180,3 +180,17 @@ def test_the_module_exposes_exactly_three_public_functions() -> None:
     ]
 
     assert sorted(public) == ["claim", "for_user", "list_in_bounds"]
+
+
+async def test_a_tier_b_place_cannot_be_claimed_without_an_etymology(db: AsyncSession) -> None:
+    """Tier B converts 'haha, weird foreign word' into a small research task."""
+    place = await build_place(db, name="Bolshoye Boldino", geonames_id=600_001, country_code="RU")
+    user = await build_user(db, username="english")
+
+    with pytest.raises(service.EtymologyRequiredError):
+        await discoveries.claim(db, place.id, user.id, CAPTION)
+
+    discovery = await discoveries.claim(
+        db, place.id, user.id, CAPTION, etymology="Named for the Boldin family estate."
+    )
+    assert discovery.id is not None

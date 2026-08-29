@@ -37,6 +37,14 @@ class CaptionRejectedError(Exception):
     """Raised when the caption fails moderation. Carries no reason by design."""
 
 
+class EtymologyRequiredError(Exception):
+    """Raised when a Tier B place is claimed without saying what the name means."""
+
+    def __init__(self, reason: str | None) -> None:
+        super().__init__(reason or "Tell us what this name means before claiming it.")
+        self.reason = reason
+
+
 @dataclass(frozen=True, slots=True)
 class BBox:
     west: float
@@ -88,7 +96,13 @@ _FOR_USER_SQL: Final = """
 """
 
 
-async def claim(session: AsyncSession, place_id: int, user_id: UUID, caption: str) -> Discovery:
+async def claim(
+    session: AsyncSession,
+    place_id: int,
+    user_id: UUID,
+    caption: str,
+    etymology: str | None = None,
+) -> Discovery:
     """Claim a place. Order matters: eligibility, then moderation, then insert."""
     if not caption.strip():
         raise CaptionRejectedError
@@ -98,6 +112,10 @@ async def claim(session: AsyncSession, place_id: int, user_id: UUID, caption: st
     verdict = await eligibility.check(session, place_id, user_id)
     if verdict.status is eligibility.Eligibility.BLOCKED:
         raise NotEligibleError(verdict.reason)
+    if verdict.status is eligibility.Eligibility.ETYMOLOGY_REQUIRED and not (
+        etymology and etymology.strip()
+    ):
+        raise EtymologyRequiredError(verdict.reason)
 
     # Only now is it worth spending a classifier call.
     screened = await moderation.screen(

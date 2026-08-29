@@ -189,6 +189,7 @@ class PlaceDetail(BaseModel):
 class ClaimRequest(BaseModel):
     place_id: int
     caption: str = Field(min_length=1, max_length=140)
+    etymology: str | None = None
 
 
 class DiscoveryResponse(BaseModel):
@@ -272,11 +273,15 @@ async def create_discovery(
     body: ClaimRequest, session: SessionDep, user: CurrentUser
 ) -> DiscoveryResponse:
     try:
-        discovery = await discoveries.claim(session, body.place_id, user.id, body.caption)
+        discovery = await discoveries.claim(
+            session, body.place_id, user.id, body.caption, body.etymology
+        )
     except discoveries.AlreadyClaimedError:
         raise HTTPException(status_code=409, detail="Someone found this one first") from None
     except discoveries.NotEligibleError as blocked:
         raise HTTPException(status_code=403, detail=str(blocked)) from None
+    except discoveries.EtymologyRequiredError as needed:
+        raise HTTPException(status_code=428, detail=str(needed)) from None
     except discoveries.CaptionRejectedError:
         # Deliberately vague: naming the rule teaches people to beat it.
         raise HTTPException(status_code=422, detail="That caption cannot be used") from None

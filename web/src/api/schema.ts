@@ -123,10 +123,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/places/{place_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Place */
+        get: operations["read_place_api_places__place_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/discoveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Discovery */
+        post: operations["create_discovery_api_discoveries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ClaimRequest */
+        ClaimRequest: {
+            /** Place Id */
+            place_id: number;
+            /** Caption */
+            caption: string;
+            /** Etymology */
+            etymology?: string | null;
+        };
+        /** DiscoveryResponse */
+        DiscoveryResponse: {
+            /** Id */
+            id: number;
+            /** Place Id */
+            place_id: number;
+            /** Finder */
+            finder: string;
+            /** Caption */
+            caption: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -172,6 +226,35 @@ export interface components {
             countries: {
                 [key: string]: number;
             };
+        };
+        /** PlaceDetail */
+        PlaceDetail: {
+            /** Id */
+            id: number;
+            /** Geonames Id */
+            geonames_id: number;
+            /** Name */
+            name: string;
+            /** Feature Class */
+            feature_class: string;
+            /** Feature Code */
+            feature_code: string;
+            /** Country Code */
+            country_code: string | null;
+            /** Tier */
+            tier: number;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Etymology */
+            etymology: string | null;
+            /** Claimed By */
+            claimed_by: string | null;
+            /** Eligibility */
+            eligibility: string;
+            /** Eligibility Reason */
+            eligibility_reason: string | null;
         };
         /** Profile */
         Profile: {
@@ -439,6 +522,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PassportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_place_api_places__place_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                place_id: number;
+            };
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_discovery_api_discoveries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveryResponse"];
                 };
             };
             /** @description Validation Error */
