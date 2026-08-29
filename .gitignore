@@ -19,3 +19,8 @@ dist/
 
 # OS
 .DS_Store
+
+# Playwright
+web/e2e/__screenshots__/
+web/test-results/
+web/playwright-report/
