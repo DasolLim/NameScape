@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-import { createGlobe } from './globe'
+import { createGlobe, type GlobeHandle } from './globe'
 
 export default function GlobeCanvas() {
   const container = useRef<HTMLDivElement>(null)
@@ -11,12 +11,17 @@ export default function GlobeCanvas() {
 
     const globe = createGlobe(element)
     globe.startIdleSpin()
+
+    // Dev-only handle so end-to-end tests can drive the camera. Stripped from
+    // production builds.
+    if (import.meta.env.DEV) {
+      ;(globalThis as unknown as { __globe?: GlobeHandle }).__globe = globe
+    }
+
     return () => globe.destroy()
   }, [])
 
   // Inline, not a utility class: maplibre-gl.css sets `.maplibregl-map
   // { position: relative }` and loads after Tailwind, so it wins on classes.
-  return (
-    <div ref={container} data-testid="globe" style={{ position: 'absolute', inset: 0 }} />
-  )
+  return <div ref={container} data-testid="globe" style={{ position: 'absolute', inset: 0 }} />
 }
