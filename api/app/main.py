@@ -4,13 +4,11 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from redis.asyncio import Redis
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.config import settings
+from app.db import engine
 
 app = FastAPI(title="Toponomicon API")
-
-engine = create_async_engine(settings.database_url, pool_pre_ping=True)
 
 
 class Health(BaseModel):
