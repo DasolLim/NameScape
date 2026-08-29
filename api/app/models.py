@@ -6,6 +6,7 @@ from geoalchemy2.elements import WKBElement
 from sqlalchemy import (
     CHAR,
     BigInteger,
+    Boolean,
     DateTime,
     ForeignKey,
     Integer,
@@ -74,4 +75,51 @@ class MagicLink(Base):
     token_hash: Mapped[str] = mapped_column(Text, unique=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Contest(Base):
+    """A 24h nickname contest, opened by the first proposal on a place."""
+
+    __tablename__ = "contests"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    place_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("places.id"))
+    status: Mapped[str] = mapped_column(Text)
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    closes_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    winner_proposal_id: Mapped[int | None] = mapped_column(BigInteger)
+    winning_score: Mapped[int | None] = mapped_column(Integer)
+    term_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Proposal(Base):
+    """A nickname put forward in a contest."""
+
+    __tablename__ = "proposals"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    contest_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("contests.id"))
+    place_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("places.id"))
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    text: Mapped[str] = mapped_column(Text)
+    normalized_text: Mapped[str] = mapped_column(Text)
+    agree: Mapped[int] = mapped_column(Integer, default=0)
+    disagree: Mapped[int] = mapped_column(Integer, default=0)
+    is_incumbent: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Vote(Base):
+    """One vote per account per proposal, changeable until the contest closes."""
+
+    __tablename__ = "votes"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True
+    )
+    proposal_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("proposals.id"), primary_key=True
+    )
+    value: Mapped[int] = mapped_column(SmallInteger)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
