@@ -4,7 +4,9 @@ import GlobeCanvas from './GlobeCanvas'
 import { fetchHealth, healthSummary, type Health } from './api/health'
 import type { SearchResult } from './api/search'
 import type { GlobeHandle, PlaceRef } from './globe'
+import { fetchPlace, type PlaceDetail } from './api/places'
 import SignInSheet from './auth/SignInSheet'
+import ClaimSheet from './claim/ClaimSheet'
 import { useAuth } from './auth/store'
 import SearchOverlay from './search/SearchOverlay'
 
@@ -25,7 +27,9 @@ export default function App() {
   const [health, setHealth] = useState<Health | null>(null)
   const globe = useRef<GlobeHandle | null>(null)
 
+  const [place, setPlace] = useState<PlaceDetail | null>(null)
   const user = useAuth((state) => state.user)
+  const requireAuth = useAuth((state) => state.requireAuth)
   const loadAuth = useAuth((state) => state.load)
   const openSignIn = useAuth((state) => state.openSignIn)
 
@@ -40,9 +44,16 @@ export default function App() {
     globe.current = handle
   }, [])
 
-  const onSelect = useCallback((place: SearchResult) => {
-    void globe.current?.focusOn(toPlaceRef(place))
-  }, [])
+  const onSelect = useCallback(
+    (result: SearchResult) => {
+      void globe.current?.focusOn(toPlaceRef(result))
+      // Reading is never gated; claiming is.
+      requireAuth(() => {
+        void fetchPlace(result.id).then(setPlace).catch(() => setPlace(null))
+      })
+    },
+    [requireAuth],
+  )
 
   return (
     <main className="relative h-full w-full overflow-hidden bg-[#0E131C] text-[#F5F1E8]">
@@ -70,6 +81,11 @@ export default function App() {
           )}
         </div>
         <SignInSheet />
+        {place && (
+          <div className="pointer-events-auto w-[min(26rem,90vw)] text-left">
+            <ClaimSheet place={place} onClaimed={() => undefined} />
+          </div>
+        )}
       </div>
     </main>
   )
