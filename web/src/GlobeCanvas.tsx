@@ -10,6 +10,7 @@ export default function GlobeCanvas() {
     if (!element) return
 
     const globe = createGlobe(element)
+    globe.startIdleSpin()
     return () => globe.destroy()
   }, [])
 

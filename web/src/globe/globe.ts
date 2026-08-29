@@ -12,6 +12,14 @@ import type {
   Unsubscribe,
 } from './types'
 
+const SPIN_DEGREES_PER_SECOND = 4
+const IDLE_RESUME_MS = 5_000
+const INTERACTION_EVENTS = ['mousedown', 'touchstart', 'wheel', 'keydown'] as const
+
+function prefersReducedMotion(): boolean {
+  return globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+}
+
 export function createGlobe(container: HTMLElement, options: GlobeOptions = {}): GlobeHandle {
   const map = new MapLibreMap({
     container,
@@ -27,13 +35,53 @@ export function createGlobe(container: HTMLElement, options: GlobeOptions = {}):
   })
 
   const tapHandlers = new Set<(placeId: string) => void>()
+  const element = map.getContainer()
+
   let frame: number | null = null
+  let idleTimer: ReturnType<typeof setTimeout> | null = null
+  let lastFrameTime: number | null = null
+  let spinRequested = false
 
   function cancelFrame(): void {
     if (frame !== null) {
       cancelAnimationFrame(frame)
       frame = null
     }
+    lastFrameTime = null
+  }
+
+  function clearIdleTimer(): void {
+    if (idleTimer !== null) {
+      clearTimeout(idleTimer)
+      idleTimer = null
+    }
+  }
+
+  function tick(now: number): void {
+    if (lastFrameTime !== null) {
+      const seconds = (now - lastFrameTime) / 1000
+      const { lng, lat } = map.getCenter()
+      map.setCenter([lng + SPIN_DEGREES_PER_SECOND * seconds, lat])
+    }
+    lastFrameTime = now
+    frame = requestAnimationFrame(tick)
+  }
+
+  function runSpin(): void {
+    cancelFrame()
+    frame = requestAnimationFrame(tick)
+  }
+
+  // Panning under globe projection is rotation, so dragging needs no code of
+  // its own; it only has to stop the drift from fighting the user.
+  function onInteraction(): void {
+    cancelFrame()
+    clearIdleTimer()
+    if (spinRequested) idleTimer = setTimeout(runSpin, IDLE_RESUME_MS)
+  }
+
+  for (const type of INTERACTION_EVENTS) {
+    element.addEventListener(type, onInteraction, { passive: true })
   }
 
   return {
@@ -53,19 +101,24 @@ export function createGlobe(container: HTMLElement, options: GlobeOptions = {}):
     },
 
     startIdleSpin(): void {
-      cancelFrame()
-      const step = (): void => {
-        frame = requestAnimationFrame(step)
-      }
-      frame = requestAnimationFrame(step)
+      if (prefersReducedMotion()) return
+      spinRequested = true
+      runSpin()
     },
 
     stopIdleSpin(): void {
+      spinRequested = false
+      clearIdleTimer()
       cancelFrame()
     },
 
     destroy(): void {
+      spinRequested = false
+      clearIdleTimer()
       cancelFrame()
+      for (const type of INTERACTION_EVENTS) {
+        element.removeEventListener(type, onInteraction)
+      }
       tapHandlers.clear()
       map.remove()
     },
