@@ -8,6 +8,10 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://toponomicon:toponomicon@localhost:55432/toponomicon"
     redis_url: str = "redis://localhost:56379/0"
+    typesense_url: str = ""
+    typesense_api_key: str = ""
+    photon_url: str = ""
+    wikidata_url: str = "https://www.wikidata.org"
 
 
 settings = Settings()
