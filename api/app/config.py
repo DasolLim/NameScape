@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     typesense_api_key: str = ""
     photon_url: str = ""
     wikidata_url: str = "https://www.wikidata.org"
+    secret_key: str = "dev-only-change-me"
 
 
 settings = Settings()
