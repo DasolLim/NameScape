@@ -1,0 +1,35 @@
+name: toponomicon
+
+services:
+  postgres:
+    # imresamu publishes arm64 builds of postgis/postgis, which is amd64-only.
+    image: imresamu/postgis:16-3.5
+    environment:
+      POSTGRES_USER: toponomicon
+      POSTGRES_PASSWORD: toponomicon
+      POSTGRES_DB: toponomicon
+    ports:
+      - "55432:5432"   # off 5432: host postgresql@18 could claim it
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toponomicon -d toponomicon"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "56379:6379"   # off 6379: a host redis-server already holds it
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  postgres-data:
+  redis-data:
