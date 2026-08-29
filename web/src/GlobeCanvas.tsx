@@ -2,7 +2,11 @@ import { useEffect, useRef } from 'react'
 
 import { createGlobe, type GlobeHandle } from './globe'
 
-export default function GlobeCanvas() {
+interface GlobeCanvasProps {
+  onReady?: (globe: GlobeHandle) => void
+}
+
+export default function GlobeCanvas({ onReady }: GlobeCanvasProps) {
   const container = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -11,6 +15,7 @@ export default function GlobeCanvas() {
 
     const globe = createGlobe(element)
     globe.startIdleSpin()
+    onReady?.(globe)
 
     // Dev-only handle so end-to-end tests can drive the camera. Stripped from
     // production builds.
@@ -19,7 +24,7 @@ export default function GlobeCanvas() {
     }
 
     return () => globe.destroy()
-  }, [])
+  }, [onReady])
 
   // Inline, not a utility class: maplibre-gl.css sets `.maplibregl-map
   // { position: relative }` and loads after Tailwind, so it wins on classes.

@@ -46,6 +46,9 @@ gen-types:  ## Regenerate web/src/api/schema.ts from the API's OpenAPI schema
 	@cd $(WEB) && npx --yes openapi-typescript openapi.json -o src/api/schema.ts >/dev/null && rm openapi.json
 	@echo "generated $(WEB)/src/api/schema.ts"
 
+seed: migrate  ## Load the curated GeoNames fixture into the dev database
+	@cd $(API) && uv run python scripts/import_geonames.py tests/fixtures/geonames_sample.txt
+
 migrate: up  ## Apply alembic migrations
 	@cd $(API) && uv run alembic upgrade head
 
