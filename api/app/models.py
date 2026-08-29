@@ -28,6 +28,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(20), unique=True)
     email: Mapped[str] = mapped_column(String(255), unique=True)
     username_locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ui_language: Mapped[str] = mapped_column(String(8), default="en")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -123,3 +124,15 @@ class Vote(Base):
     )
     value: Mapped[int] = mapped_column(SmallInteger)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class RestrictedZone(Base):
+    """A polygon that gates nomination. It never affects rendering."""
+
+    __tablename__ = "restricted_zones"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    geom: Mapped[WKBElement] = mapped_column(Geography("POLYGON", srid=4326))
+    rule_type: Mapped[str] = mapped_column(Text)
+    reason: Mapped[str] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(Text)
