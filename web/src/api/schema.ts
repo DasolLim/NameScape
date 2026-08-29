@@ -21,10 +21,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Places */
+        get: operations["search_places_api_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /**
          * Health
          * @description Liveness of the API and the backing services it cannot work without.
@@ -39,6 +61,50 @@ export interface components {
             db: boolean;
             /** Redis */
             redis: boolean;
+        };
+        /** SearchResponse */
+        SearchResponse: {
+            /** Results */
+            results: components["schemas"]["SearchResult"][];
+        };
+        /**
+         * SearchResult
+         * @description One gazetteer hit, with whether anyone has already claimed it.
+         */
+        SearchResult: {
+            /** Id */
+            id: number;
+            /** Geonames Id */
+            geonames_id: number;
+            /** Name */
+            name: string;
+            /** Feature Class */
+            feature_class: string;
+            /** Feature Code */
+            feature_code: string;
+            /** Country Code */
+            country_code: string | null;
+            /** Tier */
+            tier: number;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Claimed By */
+            claimed_by: string | null;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
     };
     responses: never;
@@ -65,6 +131,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    search_places_api_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                country?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
