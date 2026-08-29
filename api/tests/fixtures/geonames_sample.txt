@@ -1,0 +1,46 @@
+6942553	Dildo	Dildo	Dildo,Dildo Cove	47.57660	-53.54420	P	PPL	CA		05				0		0	UTC	2026-08-01
+321102	Batman	Batman	Batman,Iluh	37.88120	41.13510	P	PPLA	TR		72				405135		0	UTC	2026-08-01
+5490263	Truth or Consequences	Truth or Consequences	Hot Springs,T or C	33.12840	-107.25280	P	PPLA2	US		NM				6003		0	UTC	2026-08-01
+5722064	Boring	Boring	Boring	45.42650	-122.37510	P	PPL	US		OR				8010		0	UTC	2026-08-01
+2650788	Dull	Dull	Dull	56.61670	-3.91670	P	PPL	GB		SCT				84		0	UTC	2026-08-01
+2653265	Cockermouth	Cockermouth	Cockermouth	54.66240	-3.36270	P	PPL	GB		ENG				8761		0	UTC	2026-08-01
+2651739	Ffynnongroyw	Ffynnongroyw	Ffynnongroew	53.33330	-3.31670	P	PPL	GB		WLS				800		0	UTC	2026-08-01
+2779853	Fugging	Fugging	Fucking,Fugging	48.06670	12.86670	P	PPL	AT		04				106		0	UTC	2026-08-01
+3141537	Hell	Hell	Hell	63.44510	10.92140	P	PPL	NO		21				1503		0	UTC	2026-08-01
+2803138	Silly	Silly	Silly,Opzullik	50.64860	3.92360	P	PPL	BE		WAL				8300		0	UTC	2026-08-01
+2745912	Monster	Monster	Monster	52.02080	4.17280	P	PPL	NL		11				12000		0	UTC	2026-08-01
+3183875	Bastardo	Bastardo	Bastardo	42.85000	12.46670	P	PPL	IT		18				400		0	UTC	2026-08-01
+2967196	Condom	Condom	Condom,Condom-en-Armagnac	43.95890	0.37220	P	PPLA3	FR		76				6900		0	UTC	2026-08-01
+1607005	Bangkok	Bangkok	Krung Thep,Bangkok	13.75400	100.50140	P	PPLC	TH		40				5104476		0	UTC	2026-08-01
+5391959	San Francisco	San Francisco	SF,San Francisco	37.77490	-122.41940	P	PPLA2	US		CA				864816		0	UTC	2026-08-01
+2643743	London	London	Londres,Londonas	51.50850	-0.12570	P	PPLC	GB		ENG				8961989		0	UTC	2026-08-01
+1850147	Tokyo	Tokyo	Tokio,Toukyou	35.68950	139.69170	P	PPLC	JP		40				8336599		0	UTC	2026-08-01
+5134086	Sandy Hook	Sandy Hook	Sandy Hook	41.41650	-73.28370	P	PPL	US		CT				1700		0	UTC	2026-08-01
+5606187	Chugwater	Chugwater	Chugwater	41.75550	-104.82250	P	PPL	US		WY				212		0	UTC	2026-08-01
+4996800	Hell	Hell	Hell	42.43420	-83.98520	P	PPL	US		MI				72		0	UTC	2026-08-01
+5164706	Knockemstiff	Knockemstiff	Knockemstiff	39.27920	-83.10630	P	PPL	US		OH				300		0	UTC	2026-08-01
+4271086	Gas	Gas	Gas City	37.92500	-95.34410	P	PPL	US		KS				566		0	UTC	2026-08-01
+5228674	Toad Suck	Toad Suck	Toad Suck	35.09040	-92.54320	P	PPL	US		AR				120		0	UTC	2026-08-01
+2078127	Nowhere Else	Nowhere Else	Nowhere Else	-35.18330	138.51670	P	PPL	AU		05				60		0	UTC	2026-08-01
+2160163	Woolloomooloo	Woolloomooloo	Woolloomooloo	-33.86970	151.22000	P	PPL	AU		02				4000		0	UTC	2026-08-01
+2179537	Whakapapa	Whakapapa	Whakapapa	-39.20500	175.54000	P	PPL	NZ		G2				200		0	UTC	2026-08-01
+3435910	Reconquista	Reconquista	Reconquista	-29.15000	-59.65000	P	PPL	AR		21				73000		0	UTC	2026-08-01
+3448439	Sao Paulo	Sao Paulo	Sampa,Sao Paulo	-23.54750	-46.63610	P	PPLA	BR		27				10021295		0	UTC	2026-08-01
+2028462	Bolshoye Boldino	Bolshoye Boldino	Bolshoe Boldino	55.00440	45.31280	P	PPL	RU		48				4800		0	UTC	2026-08-01
+2831869	Wank	Wank	Wank	47.53330	11.15000	T	MT	DE		02				0		0	UTC	2026-08-01
+5964900	Lake Superior	Lake Superior	Gitchigumi,Lac Superieur	47.70000	-87.50000	H	LK	CA		08				0		0	UTC	2026-08-01
+6255150	Atlantic Ocean	Atlantic Ocean	Oceano Atlantico	0.00000	-30.00000	H	OCN							0		0	UTC	2026-08-01
+2960860	North Sea	North Sea	Nordsee,Mer du Nord	56.00000	3.00000	H	SEA							0		0	UTC	2026-08-01
+4155751	Gulf of Mexico	Gulf of Mexico	Golfo de Mexico	25.00000	-90.00000	H	GULF							0		0	UTC	2026-08-01
+5029358	Lake Wobegon	Lake Wobegon	Lake Wobegon	45.50000	-94.70000	H	LK	US		MN				0		0	UTC	2026-08-01
+2634823	River Piddle	River Piddle	Piddle,Trent	50.70000	-2.13330	H	STM	GB		ENG				0		0	UTC	2026-08-01
+5787829	Bloody Dick Creek	Bloody Dick Creek	Bloody Dick Creek	45.12910	-113.31030	H	STM	US		MT				0		0	UTC	2026-08-01
+2154739	Doubtful Sound	Doubtful Sound	Patea	-45.31670	166.98330	H	BAY	NZ		F4				0		0	UTC	2026-08-01
+5573325	Mount Ugly	Mount Ugly	Mount Ugly	38.61080	-106.21300	T	MT	US		CO				0		0	UTC	2026-08-01
+1176734	Tirich Mir	Tirich Mir	Terichmir	36.25530	71.84140	T	MT	PK		03				0		0	UTC	2026-08-01
+3421319	Nunatak	Nunatak	Nunatak	66.00000	-40.00000	T	PK	GL						0		0	UTC	2026-08-01
+6252001	United States	United States	USA,US	39.76000	-98.50000	A	PCLI	US						327167434		0	UTC	2026-08-01
+5391997	San Francisco City Hall	San Francisco City Hall	City Hall	37.77930	-122.41930	S	BLDG	US		CA				0		0	UTC	2026-08-01
+5322737	Yosemite National Park	Yosemite National Park	Yosemite	37.86510	-119.53830	L	PRK	US		CA				0		0	UTC	2026-08-01
+6269131	M25	M25	London Orbital	51.40000	-0.20000	R	RD	GB		ENG				0		0	UTC	2026-08-01
+3577154	Puerto Rico Trench	Puerto Rico Trench	Trench	19.75000	-66.00000	U	TRC							0		0	UTC	2026-08-01
