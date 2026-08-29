@@ -1,0 +1,16 @@
+# Hand-drawn nomination exclusions for disputed territories.
+#
+# REVIEW REQUIRED before any change lands. We take OSM and GeoNames as-is and
+# do not editorialise boundaries; these polygons only disable nomination, and
+# never affect what the map renders.
+#
+# Coordinates are [lon, lat] rings, WGS84. Deliberately generous.
+- name: Crimea
+  reason: Disputed territory. Naming is disabled here.
+  ring: [[32.4, 44.3], [36.7, 44.3], [36.7, 46.3], [32.4, 46.3], [32.4, 44.3]]
+- name: Kashmir
+  reason: Disputed territory. Naming is disabled here.
+  ring: [[73.0, 32.2], [80.3, 32.2], [80.3, 36.0], [73.0, 36.0], [73.0, 32.2]]
+- name: Western Sahara
+  reason: Disputed territory. Naming is disabled here.
+  ring: [[-17.1, 20.8], [-8.7, 20.8], [-8.7, 27.7], [-17.1, 27.7], [-17.1, 20.8]]
