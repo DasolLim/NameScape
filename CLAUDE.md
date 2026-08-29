@@ -68,6 +68,25 @@ Visual changes must be verified in a real browser with a screenshot, not only by
 test. Map bugs are visual — a wrong projection, mis-colliding labels, an
 overshooting fly-to. None of those fail a unit test.
 
+## Local development
+
+`make dev` starts everything, bringing up the Linux VM first if it is not running.
+Postgres listens on **55432** and Redis on **56379** — deliberately off the default
+ports, because host installs of postgres and redis already claim 5432 and 6379.
+
+## Verifying the type loop (rule 5)
+
+The API boundary is generated, so it can silently stop being enforced. To confirm it
+still is:
+
+1. Rename a field on a Pydantic response model, e.g. `Health.db` to `Health.database`
+2. `make gen-types`
+3. `cd web && npm run typecheck` — this MUST fail with TS2339
+4. Revert
+
+If step 3 passes, the loop is broken and nothing else should proceed. `openapi-typescript`
+requires TypeScript 5.x, which is why `/web` pins TS 5 rather than 6.
+
 ## Domain vocabulary
 
 | Term | Meaning |
