@@ -38,7 +38,7 @@ test:  ## pytest + vitest
 
 verify: up  ## Typecheck, lint, and test everything; stops at the first failure
 	@set -e; \
-	  cd $(API) && uv run mypy && uv run ruff check . && uv run ruff format --check . && uv run pytest -q; \
+	  cd $(API) && uv run mypy && uv run ruff check . && uv run ruff format --check . && uv run pytest -q && \
 	  cd ../$(WEB) && npm run --silent typecheck && npm run --silent lint && npm run --silent test
 
 gen-types:  ## Regenerate web/src/api/schema.ts from the API's OpenAPI schema

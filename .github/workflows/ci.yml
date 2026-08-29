@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.5
+        env:
+          POSTGRES_USER: toponomicon
+          POSTGRES_PASSWORD: toponomicon
+          POSTGRES_DB: toponomicon
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports: ["56379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s
+          --health-timeout 3s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: uv sync
+        working-directory: api
+      - run: npm ci
+        working-directory: web
+
+      - run: uv run alembic upgrade head
+        working-directory: api
+
+      - name: Typecheck, lint, test
+        run: |
+          cd api
+          uv run mypy
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run pytest -q --cov --cov-report=term-missing
+          cd ../web
+          npm run typecheck
+          npm run lint
+          npm run test
+
+      - name: Generated API types are current
+        run: |
+          make gen-types
+          git diff --exit-code web/src/api/schema.ts
+
+      - name: Schemathesis contract fuzz
+        run: |
+          cd api
+          uv run uvicorn app.main:app --port 8000 &
+          for i in $(seq 1 20); do curl -sf http://localhost:8000/api/health && break; sleep 1; done
+          uv run schemathesis run http://localhost:8000/openapi.json --max-examples 25
+
+      - name: E2E
+        run: |
+          cd web && npx playwright install chromium --with-deps
+          cd .. && make e2e
