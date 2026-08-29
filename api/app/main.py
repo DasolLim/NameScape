@@ -1,15 +1,17 @@
 from dataclasses import asdict
+from datetime import datetime
 from typing import Annotated, Literal
 
-from fastapi import Depends, FastAPI, Query
-from pydantic import BaseModel
+from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response
+from pydantic import BaseModel, EmailStr
 from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.cache import get_redis
 from app.config import settings
 from app.db import engine, get_session
-from app.modules import gazetteer
+from app.modules import accounts, gazetteer
 
 app = FastAPI(title="Toponomicon API")
 
@@ -79,3 +81,89 @@ async def search_places(
 ) -> SearchResponse:
     found = await gazetteer.search(session, q, country_code=country)
     return SearchResponse(results=[SearchResult(**asdict(result)) for result in found])
+
+
+SESSION_COOKIE = "toponomicon_session"
+RedisDep = Annotated[Redis, Depends(get_redis)]
+
+
+class MagicLinkRequest(BaseModel):
+    email: EmailStr
+
+
+class SessionRequest(BaseModel):
+    token: str
+
+
+class Me(BaseModel):
+    username: str
+
+
+class Profile(BaseModel):
+    username: str
+    joined_at: datetime
+    discoveries: int
+
+
+class PassportResponse(BaseModel):
+    username: str
+    discoveries: int
+    first_finds: int
+    countries: dict[str, int]
+
+
+@app.post("/api/auth/magic-link", status_code=204)
+async def request_magic_link(
+    body: MagicLinkRequest, session: SessionDep, redis: RedisDep
+) -> Response:
+    try:
+        await accounts.request_magic_link(session, redis, body.email)
+    except accounts.TooManyRequestsError:
+        # Deliberately vague: the limit is not a hint to work around.
+        raise HTTPException(status_code=429, detail="Too many requests") from None
+    await session.commit()
+    return Response(status_code=204)
+
+
+@app.post("/api/auth/session")
+async def create_session(body: SessionRequest, session: SessionDep, response: Response) -> Me:
+    signed_in = await accounts.authenticate(session, body.token)
+    if signed_in is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    await session.commit()
+
+    response.set_cookie(
+        SESSION_COOKIE,
+        signed_in.cookie,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=accounts.SESSION_TTL_SECONDS,
+    )
+    return Me(username=signed_in.username)
+
+
+@app.get("/api/auth/me")
+async def read_me(
+    session: SessionDep, toponomicon_session: Annotated[str | None, Cookie()] = None
+) -> Me | None:
+    if toponomicon_session is None:
+        return None
+    signed_in = await accounts.authenticate(session, toponomicon_session)
+    return None if signed_in is None else Me(username=signed_in.username)
+
+
+@app.get("/api/users/{username}")
+async def read_profile(username: str, session: SessionDep) -> Profile:
+    found = await accounts.profile(session, username)
+    if found is None:
+        raise HTTPException(status_code=404, detail="No such user")
+    return Profile(**asdict(found))
+
+
+@app.get("/api/passport/{username}")
+async def read_passport(username: str, session: SessionDep) -> PassportResponse:
+    found = await accounts.passport(session, username)
+    if found is None:
+        raise HTTPException(status_code=404, detail="No such user")
+    return PassportResponse(**asdict(found))
