@@ -1,0 +1,24 @@
+[
+  {
+    "type": "way",
+    "id": 1001,
+    "tags": {"historic": "memorial", "name": "Test War Memorial"},
+    "geometry": [
+      {"lat": 51.5010, "lon": -0.1250},
+      {"lat": 51.5010, "lon": -0.1240},
+      {"lat": 51.5020, "lon": -0.1240},
+      {"lat": 51.5020, "lon": -0.1250}
+    ]
+  },
+  {
+    "type": "way",
+    "id": 1002,
+    "tags": {"amenity": "hospital", "name": "Test Hospital"},
+    "geometry": [
+      {"lat": 40.7600, "lon": -73.9800},
+      {"lat": 40.7600, "lon": -73.9790},
+      {"lat": 40.7610, "lon": -73.9790},
+      {"lat": 40.7610, "lon": -73.9800}
+    ]
+  }
+]
