@@ -12,6 +12,28 @@ export default tseslint.config(
     languageOptions: { ecmaVersion: 2023, globals: globals.browser },
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
+  {
+    // PRD 8.3: the globe module is the only place that knows MapLibre exists.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/globe/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['maplibre-gl', 'maplibre-gl/*'],
+              message: 'MapLibre may only be imported inside src/globe/.',
+            },
+          ],
+        },
+      ],
     },
   },
 )
