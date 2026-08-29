@@ -1,5 +1,17 @@
 import { render, screen } from '@testing-library/react'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
+
+// jsdom has no WebGL; the globe module has its own tests.
+vi.mock('./globe', () => ({
+  createGlobe: () => ({
+    focusOn: vi.fn(),
+    setLayers: vi.fn(),
+    onPlaceTap: vi.fn(),
+    startIdleSpin: vi.fn(),
+    stopIdleSpin: vi.fn(),
+    destroy: vi.fn(),
+  }),
+}))
 
 import App from './App'
 

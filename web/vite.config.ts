@@ -4,6 +4,8 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // MapLibre ships a web worker the dep optimizer cannot pre-bundle.
+  optimizeDeps: { exclude: ['maplibre-gl'] },
   server: {
     proxy: { '/api': 'http://localhost:8000' },
   },
