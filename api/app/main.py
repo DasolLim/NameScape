@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Annotated, Literal
 
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.cache import get_redis
 from app.config import settings
 from app.db import engine, get_session
-from app.modules import accounts, gazetteer
+from app.models import Place, User
+from app.modules import accounts, discoveries, eligibility, gazetteer
 
 app = FastAPI(title="Toponomicon API")
 
@@ -167,3 +168,123 @@ async def read_passport(username: str, session: SessionDep) -> PassportResponse:
     if found is None:
         raise HTTPException(status_code=404, detail="No such user")
     return PassportResponse(**asdict(found))
+
+
+class PlaceDetail(BaseModel):
+    id: int
+    geonames_id: int
+    name: str
+    feature_class: str
+    feature_code: str
+    country_code: str | None
+    tier: int
+    lat: float
+    lon: float
+    etymology: str | None
+    claimed_by: str | None
+    eligibility: str
+    eligibility_reason: str | None
+
+
+class ClaimRequest(BaseModel):
+    place_id: int
+    caption: str = Field(min_length=1, max_length=140)
+
+
+class DiscoveryResponse(BaseModel):
+    id: int
+    place_id: int
+    finder: str
+    caption: str
+
+
+async def _current_user(
+    session: SessionDep, toponomicon_session: Annotated[str | None, Cookie()] = None
+) -> User:
+    signed_in = (
+        None
+        if toponomicon_session is None
+        else await accounts.authenticate(session, toponomicon_session)
+    )
+    if signed_in is None:
+        raise HTTPException(status_code=401, detail="Sign in to do that")
+    user = await session.get(User, signed_in.user_id)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Sign in to do that")
+    return user
+
+
+CurrentUser = Annotated[User, Depends(_current_user)]
+
+
+@app.get("/api/places/{place_id}")
+async def read_place(
+    place_id: int,
+    session: SessionDep,
+    toponomicon_session: Annotated[str | None, Cookie()] = None,
+) -> PlaceDetail:
+    place = await session.get(Place, place_id)
+    if place is None:
+        raise HTTPException(status_code=404, detail="No such place")
+
+    signed_in = (
+        None
+        if toponomicon_session is None
+        else await accounts.authenticate(session, toponomicon_session)
+    )
+    # Eligibility depends on the viewer's language, so it is per-request.
+    verdict = (
+        await eligibility.check(session, place_id, signed_in.user_id)
+        if signed_in is not None
+        else eligibility.EligibilityVerdict(eligibility.Eligibility.ALLOWED)
+    )
+
+    row = (
+        await session.execute(
+            text(
+                "SELECT u.username, ST_X(p.centroid::geometry), ST_Y(p.centroid::geometry) "
+                "FROM places p LEFT JOIN discoveries d ON d.place_id = p.id "
+                "LEFT JOIN users u ON u.id = d.user_id WHERE p.id = :id"
+            ),
+            {"id": place_id},
+        )
+    ).one()
+
+    return PlaceDetail(
+        id=place.id,
+        geonames_id=place.geonames_id,
+        name=place.name,
+        feature_class=place.feature_class,
+        feature_code=place.feature_code,
+        country_code=place.country_code,
+        tier=place.tier,
+        lon=float(row[1]),
+        lat=float(row[2]),
+        etymology=place.etymology,
+        claimed_by=row[0],
+        eligibility=verdict.status.value,
+        eligibility_reason=verdict.reason,
+    )
+
+
+@app.post("/api/discoveries", status_code=201)
+async def create_discovery(
+    body: ClaimRequest, session: SessionDep, user: CurrentUser
+) -> DiscoveryResponse:
+    try:
+        discovery = await discoveries.claim(session, body.place_id, user.id, body.caption)
+    except discoveries.AlreadyClaimedError:
+        raise HTTPException(status_code=409, detail="Someone found this one first") from None
+    except discoveries.NotEligibleError as blocked:
+        raise HTTPException(status_code=403, detail=str(blocked)) from None
+    except discoveries.CaptionRejectedError:
+        # Deliberately vague: naming the rule teaches people to beat it.
+        raise HTTPException(status_code=422, detail="That caption cannot be used") from None
+
+    await session.commit()
+    return DiscoveryResponse(
+        id=discovery.id,
+        place_id=discovery.place_id,
+        finder=user.username,
+        caption=discovery.caption,
+    )
