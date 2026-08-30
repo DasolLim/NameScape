@@ -4,8 +4,8 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import ratelimit
-from app.config import settings
 from app.cache import get_redis
+from app.config import settings
 from app.db import get_session
 from app.main import app
 from app.modules.moderation import classifier
