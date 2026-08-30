@@ -110,8 +110,6 @@ def resolve(
     if incumbent is not None and (
         top.score * INCUMBENT_DENOMINATOR < incumbent.score * INCUMBENT_NUMERATOR
     ):
-        return Outcome(
-            Outcome.Kind.WINNER, winner_id=incumbent.id, winning_score=incumbent.score
-        )
+        return Outcome(Outcome.Kind.WINNER, winner_id=incumbent.id, winning_score=incumbent.score)
 
     return Outcome(Outcome.Kind.WINNER, winner_id=top.id, winning_score=top.score)
