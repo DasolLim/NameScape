@@ -49,6 +49,8 @@ class Passport:
     discoveries: int
     first_finds: int
     countries: dict[str, int]
+    #: Share of each country's gazetteer places this user has found, 0..1.
+    completion: dict[str, float]
 
 
 def _signer() -> URLSafeTimedSerializer:
@@ -184,9 +186,23 @@ async def passport(session: AsyncSession, username: str) -> Passport | None:
     countries = {code: int(count) for code, count in rows if code is not None}
     total = sum(countries.values())
 
+    completion: dict[str, float] = {}
+    if countries:
+        available = await session.execute(
+            select(Place.country_code, func.count())
+            .where(Place.country_code.in_(countries))
+            .group_by(Place.country_code)
+        )
+        for code, count in available:
+            if code is not None and count:
+                completion[code] = countries[code] / int(count)
+
     return Passport(
         username=user.username,
         discoveries=total,
+        # Every discovery is a first find: one per place, enforced by the
+        # unique constraint, so these two numbers cannot diverge.
         first_finds=total,
         countries=countries,
+        completion=completion,
     )

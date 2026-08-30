@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Final, Literal
 
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response
 from pydantic import BaseModel, EmailStr, Field
@@ -13,7 +13,7 @@ from app.config import settings
 from app.db import engine, get_session
 from app.models import Place, User
 from app.modules import accounts, contests, discoveries, eligibility, gazetteer, viewport
-from app.modules.accounts import bookmarks
+from app.modules.accounts import bookmarks, share_card
 
 app = FastAPI(title="Toponomicon API")
 
@@ -112,6 +112,7 @@ class PassportResponse(BaseModel):
     discoveries: int
     first_finds: int
     countries: dict[str, int]
+    completion: dict[str, float]
 
 
 @app.post("/api/auth/magic-link", status_code=204)
@@ -153,6 +154,22 @@ async def read_me(
         return None
     signed_in = await accounts.authenticate(session, toponomicon_session)
     return None if signed_in is None else Me(username=signed_in.username)
+
+
+SHARE_CARD_MAX_AGE: Final = 60 * 60
+
+
+@app.get("/api/passport/{username}/card.png", response_class=Response)
+async def read_share_card(username: str, session: SessionDep) -> Response:
+    found = await accounts.passport(session, username)
+    if found is None:
+        raise HTTPException(status_code=404, detail="No such user")
+
+    return Response(
+        content=share_card.render(found),
+        media_type="image/png",
+        headers={"Cache-Control": f"public, max-age={SHARE_CARD_MAX_AGE}"},
+    )
 
 
 @app.get("/api/users/{username}")
@@ -279,6 +296,27 @@ async def read_place(
         bookmarked=bookmarked,
         eligibility=verdict.status.value,
         eligibility_reason=verdict.reason,
+    )
+
+
+class UserDiscoveryResponse(BaseModel):
+    id: int
+    place_id: int
+    place_name: str
+    country_code: str | None
+    caption: str
+    created_at: datetime
+
+
+class UserDiscoveriesResponse(BaseModel):
+    discoveries: list[UserDiscoveryResponse]
+
+
+@app.get("/api/discoveries")
+async def read_my_discoveries(session: SessionDep, user: CurrentUser) -> UserDiscoveriesResponse:
+    found = await discoveries.for_user(session, user.id)
+    return UserDiscoveriesResponse(
+        discoveries=[UserDiscoveryResponse(**asdict(item)) for item in found]
     )
 
 

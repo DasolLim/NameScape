@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/passport/{username}/card.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Share Card */
+        get: operations["read_share_card_api_passport__username__card_png_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users/{username}": {
         parameters: {
             query?: never;
@@ -147,7 +164,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Read My Discoveries */
+        get: operations["read_my_discoveries_api_discoveries_get"];
         put?: never;
         /** Create Discovery */
         post: operations["create_discovery_api_discoveries_post"];
@@ -351,6 +369,10 @@ export interface components {
             countries: {
                 [key: string]: number;
             };
+            /** Completion */
+            completion: {
+                [key: string]: number;
+            };
         };
         /** PlaceDetail */
         PlaceDetail: {
@@ -470,6 +492,29 @@ export interface components {
         SessionRequest: {
             /** Token */
             token: string;
+        };
+        /** UserDiscoveriesResponse */
+        UserDiscoveriesResponse: {
+            /** Discoveries */
+            discoveries: components["schemas"]["UserDiscoveryResponse"][];
+        };
+        /** UserDiscoveryResponse */
+        UserDiscoveryResponse: {
+            /** Id */
+            id: number;
+            /** Place Id */
+            place_id: number;
+            /** Place Name */
+            place_name: string;
+            /** Country Code */
+            country_code: string | null;
+            /** Caption */
+            caption: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -677,6 +722,35 @@ export interface operations {
             };
         };
     };
+    read_share_card_api_passport__username__card_png_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                username: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_profile_api_users__username__get: {
         parameters: {
             query?: never;
@@ -759,6 +833,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlaceDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_my_discoveries_api_discoveries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDiscoveriesResponse"];
                 };
             };
             /** @description Validation Error */
