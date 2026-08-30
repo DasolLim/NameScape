@@ -77,6 +77,18 @@ jobs:
           uv run schemathesis run http://localhost:8000/openapi.json \
             --max-examples 25 \
             --exclude-checks positive_data_acceptance,allow_header_conformance
+          # Playwright starts its own API; leaving this one bound to :8000
+          # makes its webServer refuse to start.
+          kill %1
+
+      # The browser tests search for real places and sign in as seeded users.
+      # Called directly, not through make: the make targets start Docker
+      # Compose, and CI supplies Postgres and Redis as service containers.
+      - name: Seed the database for the browser tests
+        run: |
+          cd api
+          uv run python scripts/import_geonames.py tests/fixtures/geonames_sample.txt
+          uv run python scripts/seed_demo.py
 
       - name: E2E
         run: |
