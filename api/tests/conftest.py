@@ -80,3 +80,22 @@ async def fake_redis() -> AsyncIterator[FakeRedis]:
         yield client
     finally:
         await client.aclose()
+
+
+@pytest.fixture(autouse=True)
+async def isolated_app_state(fake_redis: FakeRedis) -> AsyncIterator[None]:
+    """No test may reach the development Redis.
+
+    The rate-limit middleware reads app.state.redis directly, because
+    middleware cannot use FastAPI dependencies. Dependency overrides are also
+    cleared so one endpoint test cannot leak a session into the next.
+    """
+    from app.main import app
+
+    original = getattr(app.state, "redis", None)
+    app.state.redis = fake_redis
+    try:
+        yield
+    finally:
+        app.state.redis = original
+        app.dependency_overrides.clear()
