@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     #: Writes allowed per address per minute. Raised for contract fuzzing,
     #: where the limiter would otherwise answer before request validation.
     writes_per_minute: int = 30
+    #: Only enable behind a proxy you control: a client can otherwise forge
+    #: X-Forwarded-For and get a fresh allowance per request.
+    trust_forwarded_for: bool = False
 
     #: Where the sign-in link should send people back to.
     app_base_url: str = "http://localhost:5173"

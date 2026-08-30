@@ -98,3 +98,57 @@ async def test_no_raw_address_reaches_redis(
 
     assert any(key.startswith("ratelimit:") for key in keys)
     assert all(CLIENT_IP not in key for key in keys)
+
+
+async def test_a_counter_left_without_a_ttl_heals_instead_of_locking_out(
+    fake_redis: FakeRedis,
+) -> None:
+    """The failure that bit in development.
+
+    INCR and EXPIRE used to be two awaits. A crash between them left a key
+    with no TTL, and because the expiry was only set when the counter read 1,
+    it never got one: that route stayed refused forever.
+    """
+    key = ratelimit.key_for(CLIENT_IP, "POST /api/discoveries")
+    await fake_redis.set(key, 500)  # no TTL, well past the limit
+    assert await fake_redis.ttl(key) == -1
+
+    await ratelimit.count(fake_redis, key)
+
+    assert await fake_redis.ttl(key) > 0
+
+
+async def test_the_window_expires_so_the_allowance_returns(
+    fake_redis: FakeRedis,
+) -> None:
+    key = ratelimit.key_for(CLIENT_IP, "POST /api/discoveries")
+
+    await ratelimit.count(fake_redis, key)
+
+    assert await fake_redis.ttl(key) == ratelimit.WINDOW_SECONDS
+
+
+async def test_a_forged_forwarded_header_is_ignored_by_default(
+    fake_redis: FakeRedis,
+) -> None:
+    """Trusting the header unconditionally would hand out a fresh allowance
+    per request to anyone willing to set it."""
+    assert settings.trust_forwarded_for is False
+
+    assert ratelimit.address_of_client("10.0.0.1", forwarded_for="1.2.3.4") == "10.0.0.1"
+
+
+async def test_a_client_behind_a_trusted_proxy_is_not_lumped_in_with_everyone(
+    fake_redis: FakeRedis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Behind a load balancer every request shares the proxy's address, so
+    without the forwarded header one busy visitor would refuse everyone."""
+    monkeypatch.setattr(settings, "trust_forwarded_for", True)
+
+    direct = ratelimit.address_of_client("10.0.0.1", forwarded_for=None)
+    behind = ratelimit.address_of_client("10.0.0.1", forwarded_for="203.0.113.9, 10.0.0.1")
+    other = ratelimit.address_of_client("10.0.0.1", forwarded_for="198.51.100.4")
+
+    assert direct == "10.0.0.1"
+    assert behind == "203.0.113.9"
+    assert behind != other

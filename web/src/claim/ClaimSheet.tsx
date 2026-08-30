@@ -52,7 +52,12 @@ export default function ClaimSheet({ place, onClaimed }: ClaimSheetProps) {
       setClaimed(discovery)
       onClaimed(discovery)
     } catch (thrown) {
-      setError(thrown instanceof ClaimError ? thrown.message : 'That did not work.')
+      if (thrown instanceof ClaimError && thrown.status === 429) {
+        // "Too many requests" tells you nothing about what to do next.
+        setError('You are stamping quickly. Give it a moment and try again.')
+      } else {
+        setError(thrown instanceof ClaimError ? thrown.message : 'That did not work.')
+      }
     } finally {
       setSending(false)
     }

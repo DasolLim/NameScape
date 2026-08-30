@@ -22,6 +22,19 @@ FIXTURE = Path(__file__).parent / "fixtures" / "geonames_sample.txt"
 BOUNDS = viewport_service.BBox(-54.0, 47.0, -53.0, 48.0)
 
 
+class DeadPipeline:
+    """Queues without complaint, then fails on execute, as a real one does."""
+
+    def incr(self, *_args: object, **_kwargs: object) -> "DeadPipeline":
+        return self
+
+    def expire(self, *_args: object, **_kwargs: object) -> "DeadPipeline":
+        return self
+
+    async def execute(self) -> list[object]:
+        raise RedisConnectionError("redis is down")
+
+
 class DeadRedis:
     """Every call fails, the way an unreachable Redis does."""
 
@@ -36,6 +49,9 @@ class DeadRedis:
 
     async def expire(self, *_args: object, **_kwargs: object) -> bool:
         raise RedisConnectionError("redis is down")
+
+    def pipeline(self, *_args: object, **_kwargs: object) -> DeadPipeline:
+        return DeadPipeline()
 
 
 async def test_typesense_down_falls_back_to_trigram_search(

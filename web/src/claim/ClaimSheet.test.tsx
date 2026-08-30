@@ -106,6 +106,21 @@ test('a successful claim shows the first finder badge', async () => {
   expect(onClaimed).toHaveBeenCalledOnce()
 })
 
+test('being rate limited says to wait, not just "too many requests"', async () => {
+  server.use(
+    http.post('/api/discoveries', () =>
+      HttpResponse.json({ detail: 'Too many requests' }, { status: 429 }),
+    ),
+  )
+  const user = userEvent.setup()
+  render(<ClaimSheet place={PLACE} onClaimed={vi.fn()} />)
+
+  await user.type(screen.getByLabelText(/caption/i), 'Found it on a map.')
+  await user.click(screen.getByRole('button', { name: /stamp it/i }))
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(/moment/i)
+})
+
 test('a conflict says someone was faster, not something generic', async () => {
   server.use(
     http.post('/api/discoveries', () =>
