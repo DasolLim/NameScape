@@ -1014,6 +1014,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "fakeredis" },
+    { name = "hypothesis" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -1043,6 +1044,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "fakeredis", specifier = ">=2.37.1" },
+    { name = "hypothesis", specifier = ">=6.165.10" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
