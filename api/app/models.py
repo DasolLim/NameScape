@@ -136,3 +136,17 @@ class RestrictedZone(Base):
     rule_type: Mapped[str] = mapped_column(Text)
     reason: Mapped[str] = mapped_column(Text)
     source: Mapped[str] = mapped_column(Text)
+
+
+class Bookmark(Base):
+    """A personal save. Unlimited, and the lightest action in the product."""
+
+    __tablename__ = "bookmarks"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    place_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("places.id", ondelete="CASCADE"), primary_key=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
