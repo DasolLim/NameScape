@@ -95,7 +95,7 @@ export default function SearchOverlay({ onSelect }: SearchOverlayProps) {
         ref={triggerRef}
         type="button"
         onClick={() => setOpen(true)}
-        className="pointer-events-auto rounded-full bg-[#151C28] px-5 py-2.5 text-sm text-[#D6D0C2] shadow-lg ring-1 ring-[#2B3646] hover:text-[#F5F1E8]"
+        className="pointer-events-auto rounded-full bg-[#151C28] px-5 py-3 text-sm text-[#D6D0C2] shadow-lg ring-1 ring-[#2B3646] hover:text-[#F5F1E8]"
       >
         Search places
       </button>
@@ -128,7 +128,7 @@ export default function SearchOverlay({ onSelect }: SearchOverlayProps) {
                 onSelect(place)
                 close()
               }}
-              className={`flex cursor-pointer items-baseline gap-3 border-t border-[#2B3646]/60 px-5 py-2.5 text-sm ${
+              className={`flex cursor-pointer items-baseline gap-3 border-t border-[#2B3646]/60 px-5 py-3 text-sm ${
                 index === active ? 'bg-[#1E2735] text-[#E8A33D]' : 'text-[#F5F1E8]'
               }`}
             >
