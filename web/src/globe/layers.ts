@@ -91,7 +91,7 @@ function layerDefinitions(name: LayerName): Record<string, unknown>[] {
   }
 
   const colour = name === 'bookmarks' ? VERDIGRIS : BRASS
-  return [
+  const definitions: Record<string, unknown>[] = [
     {
       id: `${name}-glow`,
       type: 'circle',
@@ -117,6 +117,35 @@ function layerDefinitions(name: LayerName): Record<string, unknown>[] {
       },
     },
   ]
+
+  if (name === 'bookmarks') {
+    // A saved place should be readable at a glance. Discovery pins stay
+    // unlabelled: the basemap already names those, and two labels on one
+    // point is how a map starts looking cluttered.
+    definitions.push({
+      id: 'bookmarks-label',
+      type: 'symbol',
+      source: name,
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-size': 11,
+        'text-font': ['Noto Sans Regular'],
+        'text-offset': [0, 1.1],
+        'text-anchor': 'top',
+        // A place the visitor deliberately saved should not lose a collision
+        // to an arbitrary basemap label.
+        'text-allow-overlap': true,
+        'symbol-sort-key': 0,
+      },
+      paint: {
+        'text-color': VERDIGRIS,
+        'text-halo-color': INK_950,
+        'text-halo-width': 1.2,
+      },
+    })
+  }
+
+  return definitions
 }
 
 export function applyLayer(map: MapLibreMap, name: LayerName, spec: LayerSpec): void {

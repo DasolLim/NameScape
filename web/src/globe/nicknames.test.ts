@@ -9,6 +9,7 @@ const mapInstance = {
   off: vi.fn(),
   remove: vi.fn(),
   setProjection: vi.fn(),
+  setSky: vi.fn(),
   flyTo: vi.fn(),
   setCenter: vi.fn(),
   getCenter: vi.fn(() => ({ lng: 0, lat: 20 })),

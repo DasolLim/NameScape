@@ -21,6 +21,10 @@ TIER_2_FEATURE_CODES: Final = frozenset({"LK", "LKS", "BAY", "SD", "MT", "PK", "
 
 _GEONAMES_COLUMNS: Final = 19
 
+#: Rows per statement. A real dump is millions of rows, so a round trip per
+#: row would take hours; this keeps the import to minutes.
+BATCH_SIZE: Final = 5_000
+
 
 def assign_tier(feature_code: str, population: int) -> int:
     """1 major, 2 notable, 3 minor. Drives contest quorum, nothing else."""
@@ -43,6 +47,7 @@ def _row_to_values(fields: list[str]) -> dict[str, object] | None:
         "geonames_id": int(fields[0]),
         "name": name,
         "name_normalized": name.casefold(),
+        "search_text": " ".join([name, *alternate]).casefold(),
         "alternate_names": alternate,
         "feature_class": fields[6],
         "feature_code": fields[7],
@@ -54,9 +59,39 @@ def _row_to_values(fields: list[str]) -> dict[str, object] | None:
     }
 
 
+_UPDATABLE: Final = (
+    "name",
+    "name_normalized",
+    "search_text",
+    "alternate_names",
+    "feature_class",
+    "feature_code",
+    "country_code",
+    "admin1",
+    "centroid",
+    "tier",
+    "population",
+)
+
+
+async def _write(session: AsyncSession, batch: list[dict[str, object]]) -> None:
+    if not batch:
+        return
+    statement = insert(Place)
+    await session.execute(
+        statement.on_conflict_do_update(
+            index_elements=[Place.geonames_id],
+            set_={key: statement.excluded[key] for key in _UPDATABLE},
+        ),
+        batch,
+    )
+
+
 async def import_geonames(session: AsyncSession, dump: Path) -> int:
     """Load a GeoNames dump into places. Idempotent on geonames_id."""
     imported = 0
+    batch: list[dict[str, object]] = []
+    seen: set[int] = set()
 
     with dump.open(encoding="utf-8") as handle:
         for line in handle:
@@ -64,14 +99,19 @@ async def import_geonames(session: AsyncSession, dump: Path) -> int:
             if values is None:
                 continue
 
-            statement = insert(Place).values(**values)
-            await session.execute(
-                statement.on_conflict_do_update(
-                    index_elements=[Place.geonames_id],
-                    set_={key: statement.excluded[key] for key in values if key != "geonames_id"},
-                )
-            )
-            imported += 1
+            # A batch cannot contain the same conflict target twice.
+            geonames_id = int(str(values["geonames_id"]))
+            if geonames_id in seen:
+                continue
+            seen.add(geonames_id)
 
+            batch.append(values)
+            imported += 1
+            if len(batch) >= BATCH_SIZE:
+                await _write(session, batch)
+                batch.clear()
+                seen.clear()
+
+    await _write(session, batch)
     await session.flush()
     return imported

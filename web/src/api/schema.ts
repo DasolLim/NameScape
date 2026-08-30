@@ -640,6 +640,7 @@ export interface operations {
             query: {
                 q: string;
                 country?: string | null;
+                broad?: boolean;
             };
             header?: never;
             path?: never;

@@ -49,8 +49,13 @@ gen-types:  ## Regenerate web/src/api/schema.ts from the API's OpenAPI schema
 	@cd $(WEB) && npx --yes openapi-typescript openapi.json -o src/api/schema.ts >/dev/null && rm openapi.json
 	@echo "generated $(WEB)/src/api/schema.ts"
 
-seed: migrate  ## Load the curated GeoNames fixture into the dev database
-	@cd $(API) && uv run python scripts/import_geonames.py tests/fixtures/geonames_sample.txt
+# Real GeoNames data, not the test fixture: the fixture's ids are
+# illustrative and collide with real ones. GEONAMES overrides the selection,
+# e.g. `make seed GEONAMES="cities500 US GB CA"`.
+GEONAMES ?= cities500 GB CA US
+
+seed: migrate  ## Download and import real GeoNames data
+	@cd $(API) && uv run python scripts/fetch_geonames.py $(GEONAMES)
 
 seed-demo: seed  ## Add demo discoveries so the dev globe has pins
 	@cd $(API) && uv run python scripts/seed_demo.py

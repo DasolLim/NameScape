@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import GlobeCanvas from './GlobeCanvas'
+import Starfield from './Starfield'
 import { fetchHealth, healthSummary, type Health } from './api/health'
 import type { SearchResult } from './api/search'
 import { fetchViewport, toLayerState } from './api/viewport'
 import type { GlobeHandle, PlaceRef } from './globe'
 import { fetchPlace, type PlaceDetail } from './api/places'
+import { completeSignInFromUrl } from './auth/completeSignIn'
 import SignInSheet from './auth/SignInSheet'
 import BookmarkStar from './bookmarks/BookmarkStar'
 import ClaimSheet from './claim/ClaimSheet'
@@ -45,7 +47,9 @@ export default function App() {
     fetchHealth()
       .then(setHealth)
       .catch(() => setHealth(null))
-    void loadAuth()
+    // An emailed link lands here with ?token=; exchange it before asking who
+    // the visitor is, so a fresh sign-in is not reported as anonymous.
+    void completeSignInFromUrl().then(() => loadAuth())
   }, [loadAuth])
 
   const onReady = useCallback((handle: GlobeHandle) => {
@@ -76,7 +80,8 @@ export default function App() {
   )
 
   return (
-    <main className="relative h-full w-full overflow-hidden bg-[#0E131C] text-[#F5F1E8]">
+    <main className="relative h-full w-full overflow-hidden bg-[#05070C] text-[#F5F1E8]">
+      <Starfield />
       <GlobeCanvas onReady={onReady} />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-4 p-6">

@@ -49,17 +49,19 @@ async def build_place(
     tier: int = 3,
     lon: float = -53.5442,
     lat: float = 47.5766,
+    population: int = 0,
 ) -> Place:
     place = Place(
         geonames_id=geonames_id,
         name=name,
         name_normalized=name.casefold(),
+        search_text=name.casefold(),
         alternate_names=[],
         feature_class=feature_class,
         feature_code=feature_code,
         country_code=country_code,
         tier=tier,
-        population=0,
+        population=population,
         centroid=f"SRID=4326;POINT({lon} {lat})",
     )
     session.add(place)

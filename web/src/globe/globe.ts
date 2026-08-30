@@ -61,6 +61,18 @@ export function createGlobe(container: HTMLElement, options: GlobeOptions = {}):
 
   map.on('style.load', () => {
     map.setProjection({ type: 'globe' })
+    // The halo at the limb is what makes this read as a planet in space
+    // rather than a textured ball. It fades out by z7, before it could
+    // interfere with the working map.
+    map.setSky({
+      'sky-color': '#0B1018',
+      'horizon-color': '#2B3646',
+      'fog-color': '#05070C',
+      'sky-horizon-blend': 0.6,
+      'horizon-fog-blend': 0.5,
+      'fog-ground-blend': 0.1,
+      'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 0.9, 5, 0.6, 7, 0],
+    })
     if (pendingLayers) {
       applyLayers(pendingLayers)
       pendingLayers = null

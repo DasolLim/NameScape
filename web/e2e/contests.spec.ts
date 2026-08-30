@@ -31,6 +31,9 @@ function distinctNickname(): string {
 }
 
 test('a nickname can be proposed and voted on', async ({ page, context }, testInfo) => {
+  // Two full sign-in-and-search cycles in one test: legitimately long, and
+  // longer still when the rest of the suite is running beside it.
+  test.slow()
   const nickname = distinctNickname()
 
   await signIn(context, 'demo')

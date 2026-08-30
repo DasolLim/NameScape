@@ -28,7 +28,7 @@ beforeEach(() => {
   server.use(
     http.get('/api/search', ({ request }) => {
       const query = new URL(request.url).searchParams.get('q') ?? ''
-      requests.push(query)
+      requests.push(`${query}${new URL(request.url).searchParams.get('broad') ? ' [broad]' : ''}`)
       if (query === 'nowhere') return HttpResponse.json({ results: [] })
       return HttpResponse.json({ results: [DILDO, BORING, CLAIMED] })
     }),
@@ -84,6 +84,18 @@ test('an empty result set offers a worldwide search instead of a dead end', asyn
   await openAndType(user, 'nowhere')
 
   expect(await screen.findByRole('button', { name: /search worldwide/i })).toBeVisible()
+})
+
+test('the worldwide button actually widens the search', async () => {
+  const { user } = setup()
+  await openAndType(user, 'nowhere')
+
+  await user.click(await screen.findByRole('button', { name: /search worldwide/i }))
+
+  await waitFor(() => expect(requests).toContain('nowhere [broad]'))
+  // It is offered once; a second press would repeat the same query.
+  expect(screen.queryByRole('button', { name: /search worldwide/i })).not.toBeInTheDocument()
+  expect(await screen.findByText(/still nothing/i)).toBeVisible()
 })
 
 test('Escape closes the overlay and returns focus to the trigger', async () => {

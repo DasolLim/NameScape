@@ -120,8 +120,11 @@ async def search_places(
     q: str,
     session: SessionDep,
     country: CountryDep = None,
+    #: Widens the fuzzy threshold. What the empty state offers instead of a
+    #: dead end.
+    broad: bool = False,
 ) -> SearchResponse:
-    found = await gazetteer.search(session, strip_nul(q), country_code=country)
+    found = await gazetteer.search(session, strip_nul(q), country_code=country, broad=broad)
     return SearchResponse(results=[SearchResult(**asdict(result)) for result in found])
 
 

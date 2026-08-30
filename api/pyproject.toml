@@ -22,6 +22,7 @@ dependencies = [
     "pillow>=12.3.0",
     "prometheus-client>=0.26.0",
     "sentry-sdk>=2.68.1",
+    "aiosmtplib>=5.1.2",
 ]
 
 [dependency-groups]

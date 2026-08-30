@@ -46,7 +46,15 @@ async def main() -> None:
         created = 0
         for name, caption in CAPTIONS.items():
             place = (
-                (await session.execute(select(Place).where(Place.name == name))).scalars().first()
+                (
+                    await session.execute(
+                        select(Place)
+                        .where(Place.name == name, Place.feature_class == "P")
+                        .order_by(Place.population.desc())
+                    )
+                )
+                .scalars()
+                .first()
             )
             if place is None:
                 continue
@@ -77,7 +85,13 @@ async def main() -> None:
 
         # A resolved nickname, so the globe has a second label to render.
         dildo = (
-            (await session.execute(select(Place).where(Place.name == "Dildo"))).scalars().first()
+            (
+                await session.execute(
+                    select(Place).where(Place.name == "Dildo", Place.feature_class == "P")
+                )
+            )
+            .scalars()
+            .first()
         )
         if dildo is not None:
             await session.execute(

@@ -24,5 +24,16 @@ class Settings(BaseSettings):
     #: where the limiter would otherwise answer before request validation.
     writes_per_minute: int = 30
 
+    #: Where the sign-in link should send people back to.
+    app_base_url: str = "http://localhost:5173"
+    #: Mail. With no host configured the link is logged instead of sent, which
+    #: is what development wants and production must never rely on.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "Toponomicon <no-reply@toponomicon.example>"
+    smtp_start_tls: bool = True
+
 
 settings = Settings()

@@ -9,6 +9,8 @@ interface AuthState {
   status: Status
   signInOpen: boolean
   linkSent: boolean
+  /** Why a sign-in link failed, so an expired one is not a silent no-op. */
+  linkError: string | null
   load: () => Promise<void>
   requestLink: (email: string) => Promise<void>
   signIn: (token: string) => Promise<void>
@@ -23,6 +25,7 @@ export const useAuth = create<AuthState>((set, get) => ({
   status: 'unknown',
   signInOpen: false,
   linkSent: false,
+  linkError: null,
 
   load: async () => {
     const user = await fetchMe().catch(() => null)
@@ -36,10 +39,10 @@ export const useAuth = create<AuthState>((set, get) => ({
 
   signIn: async (token) => {
     const user = await completeSignIn(token)
-    set({ user, status: 'signed-in', signInOpen: false, linkSent: false })
+    set({ user, status: 'signed-in', signInOpen: false, linkSent: false, linkError: null })
   },
 
-  openSignIn: () => set({ signInOpen: true, linkSent: false }),
+  openSignIn: () => set({ signInOpen: true, linkSent: false, linkError: null }),
   closeSignIn: () => set({ signInOpen: false }),
 
   requireAuth: (action) => {

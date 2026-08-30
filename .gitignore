@@ -24,3 +24,6 @@ dist/
 web/e2e/__screenshots__/
 web/test-results/
 web/playwright-report/
+
+# Downloaded GeoNames dumps: hundreds of MB, fetched on demand
+api/.geonames/

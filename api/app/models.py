@@ -43,6 +43,8 @@ class Place(Base):
     wikidata_id: Mapped[str | None] = mapped_column(Text)
     name: Mapped[str] = mapped_column(Text)
     name_normalized: Mapped[str] = mapped_column(Text)
+    #: Name and alternate names, lowered, for one indexed fuzzy predicate.
+    search_text: Mapped[str] = mapped_column(Text, default="")
     alternate_names: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
     feature_class: Mapped[str] = mapped_column(CHAR(1))
     feature_code: Mapped[str] = mapped_column(Text)

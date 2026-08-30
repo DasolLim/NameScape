@@ -17,6 +17,7 @@ const mapInstance = {
   },
   remove: vi.fn(),
   setProjection: vi.fn(),
+  setSky: vi.fn(),
   flyTo: vi.fn(),
   setCenter: vi.fn(),
   getCenter: vi.fn(() => ({ lng: 0, lat: 20 })),
@@ -115,6 +116,38 @@ test('bookmarks draw in their own layer', () => {
 
   expect(sources.has('bookmarks')).toBe(true)
   expect(layers.has('bookmarks-pin')).toBe(true)
+  globe.destroy()
+})
+
+test('a bookmarked place shows its name, not just a dot', () => {
+  const globe = createGlobe(document.createElement('div'))
+
+  globe.setLayers({ bookmarks: { visible: true, features: PINS } })
+
+  const label = layers.get('bookmarks-label')
+  expect(label?.type).toBe('symbol')
+  const layout = label?.layout as Record<string, unknown>
+  expect(JSON.stringify(layout['text-field'])).toContain('name')
+  globe.destroy()
+})
+
+test('hiding bookmarks hides their labels too', () => {
+  const globe = createGlobe(document.createElement('div'))
+  globe.setLayers({ bookmarks: { visible: true, features: PINS } })
+
+  globe.setLayers({ bookmarks: { visible: false, features: PINS } })
+
+  expect(layers.get('bookmarks-label')?.visibility).toBe('none')
+  expect(layers.get('bookmarks-pin')?.visibility).toBe('none')
+  globe.destroy()
+})
+
+test('discovery pins stay unlabelled, so the map does not double up names', () => {
+  const globe = createGlobe(document.createElement('div'))
+
+  globe.setLayers({ discoveries: { visible: true, features: PINS } })
+
+  expect(layers.has('discoveries-label')).toBe(false)
   globe.destroy()
 })
 

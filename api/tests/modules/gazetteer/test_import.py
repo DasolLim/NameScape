@@ -1,5 +1,7 @@
 from pathlib import Path
+from typing import Any
 
+import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -67,3 +69,27 @@ async def test_alternate_names_are_parsed_into_the_array(db: AsyncSession) -> No
 
     assert fugging.alternate_names == ["Fucking", "Fugging"]
     assert fugging.name_normalized == "fugging"
+
+
+async def test_rows_are_written_in_batches_not_one_at_a_time(
+    db: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A per-row round trip cannot survive a real dump of millions of rows."""
+    from app.modules.gazetteer import importer
+
+    executed = 0
+    original = db.execute
+
+    async def counting(*args: Any, **kwargs: Any) -> Any:
+        nonlocal executed
+        executed += 1
+        return await original(*args, **kwargs)
+
+    monkeypatch.setattr(db, "execute", counting)
+    monkeypatch.setattr(importer, "BATCH_SIZE", 20)
+
+    imported = await import_geonames(db, FIXTURE)
+
+    assert imported == 41
+    # 41 rows in batches of 20 is three statements, not forty-one.
+    assert executed <= 3

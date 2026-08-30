@@ -17,6 +17,7 @@ export default function SearchOverlay({ onSelect }: SearchOverlayProps) {
   const [results, setResults] = useState<SearchResult[]>([])
   const [active, setActive] = useState(-1)
   const [searched, setSearched] = useState(false)
+  const [broadened, setBroadened] = useState(false)
 
   const triggerRef = useRef<HTMLButtonElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -42,7 +43,7 @@ export default function SearchOverlay({ onSelect }: SearchOverlayProps) {
 
     const controller = new AbortController()
     const timer = setTimeout(() => {
-      searchPlaces(text, controller.signal)
+      searchPlaces(text, controller.signal, broadened)
         .then((found) => {
           setResults(found)
           setSearched(true)
@@ -55,13 +56,14 @@ export default function SearchOverlay({ onSelect }: SearchOverlayProps) {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [query, open])
+  }, [query, open, broadened])
 
   function close() {
     setOpen(false)
     setQuery('')
     setResults([])
     setSearched(false)
+    setBroadened(false)
     setActive(-1)
   }
 
@@ -111,7 +113,10 @@ export default function SearchOverlay({ onSelect }: SearchOverlayProps) {
         aria-controls="search-results"
         aria-label="Search places"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => {
+          setQuery(event.target.value)
+          setBroadened(false)
+        }}
         onKeyDown={onKeyDown}
         placeholder="Dildo, Batman, Truth or Consequences…"
         className="w-full bg-transparent px-5 py-3 text-[#F5F1E8] placeholder:text-[#6B665C] focus:outline-none"
@@ -147,14 +152,16 @@ export default function SearchOverlay({ onSelect }: SearchOverlayProps) {
 
       {searched && results.length === 0 && (
         <div className="border-t border-[#2B3646]/60 px-5 py-4 text-sm text-[#9B9484]">
-          <p>Nothing here by that name.</p>
-          <button
-            type="button"
-            className="mt-2 text-[#E8A33D] underline underline-offset-4"
-            onClick={() => setQuery(query.trim())}
-          >
-            Search worldwide
-          </button>
+          <p>{broadened ? 'Still nothing by that name.' : 'Nothing here by that name.'}</p>
+          {!broadened && (
+            <button
+              type="button"
+              className="mt-2 text-[#E8A33D] underline underline-offset-4"
+              onClick={() => setBroadened(true)}
+            >
+              Search worldwide
+            </button>
+          )}
         </div>
       )}
     </div>

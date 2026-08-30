@@ -7,6 +7,7 @@ export default function SignInSheet() {
   const linkSent = useAuth((state) => state.linkSent)
   const requestLink = useAuth((state) => state.requestLink)
   const close = useAuth((state) => state.closeSignIn)
+  const linkError = useAuth((state) => state.linkError)
 
   const [email, setEmail] = useState('')
   const [failed, setFailed] = useState(false)
@@ -29,6 +30,11 @@ export default function SignInSheet() {
       aria-label="Sign in"
       className="pointer-events-auto w-[min(26rem,90vw)] rounded-xl bg-[#151C28] p-6 shadow-2xl ring-1 ring-[#2B3646]"
     >
+      {linkError && (
+        <p role="alert" className="mb-3 text-sm text-[#C9524E]">
+          {linkError} Ask for a new one.
+        </p>
+      )}
       {linkSent ? (
         <p className="text-sm text-[#D6D0C2]">
           Check your email — the link signs you in and expires in 15 minutes.
