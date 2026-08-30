@@ -16,6 +16,7 @@ from app.db import engine, get_session
 from app.models import Place, User
 from app.modules import accounts, contests, discoveries, eligibility, gazetteer, viewport
 from app.modules.accounts import bookmarks, share_card
+from app.text import strip_nul
 
 app = FastAPI(title="Toponomicon API")
 
@@ -118,7 +119,7 @@ async def search_places(
     session: SessionDep,
     country: CountryDep = None,
 ) -> SearchResponse:
-    found = await gazetteer.search(session, q, country_code=country)
+    found = await gazetteer.search(session, strip_nul(q), country_code=country)
     return SearchResponse(results=[SearchResult(**asdict(result)) for result in found])
 
 
@@ -235,7 +236,7 @@ SHARE_CARD_MAX_AGE: Final = 60 * 60
     responses=_errors(404),
 )
 async def read_share_card(username: str, session: SessionDep) -> Response:
-    found = await accounts.passport(session, username)
+    found = await accounts.passport(session, strip_nul(username))
     if found is None:
         raise HTTPException(status_code=404, detail="No such user")
 
@@ -248,7 +249,7 @@ async def read_share_card(username: str, session: SessionDep) -> Response:
 
 @app.get("/api/users/{username}", responses=_errors(404))
 async def read_profile(username: str, session: SessionDep) -> Profile:
-    found = await accounts.profile(session, username)
+    found = await accounts.profile(session, strip_nul(username))
     if found is None:
         raise HTTPException(status_code=404, detail="No such user")
     return Profile(**asdict(found))
@@ -256,7 +257,7 @@ async def read_profile(username: str, session: SessionDep) -> Profile:
 
 @app.get("/api/passport/{username}", responses=_errors(404))
 async def read_passport(username: str, session: SessionDep) -> PassportResponse:
-    found = await accounts.passport(session, username)
+    found = await accounts.passport(session, strip_nul(username))
     if found is None:
         raise HTTPException(status_code=404, detail="No such user")
     return PassportResponse(**asdict(found))

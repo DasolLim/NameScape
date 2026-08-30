@@ -45,3 +45,15 @@ async def test_a_blank_query_returns_an_empty_list_not_an_error(client: AsyncCli
 
     assert response.status_code == 200
     assert response.json()["results"] == []
+
+
+async def test_a_null_byte_in_a_query_does_not_crash(client: AsyncClient) -> None:
+    """Postgres text cannot hold 0x00; found by contract fuzzing in CI.
+
+    The byte is stripped rather than rejected, so the query still means what
+    the user typed.
+    """
+    response = await client.get("/api/search", params={"q": "Dild\x00o"})
+
+    assert response.status_code == 200
+    assert [r["name"] for r in response.json()["results"]] == ["Dildo"]

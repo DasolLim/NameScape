@@ -110,3 +110,9 @@ async def test_the_share_card_is_a_cacheable_png(client: AsyncClient, db: AsyncS
 
 async def test_a_card_for_an_unknown_user_is_a_404(client: AsyncClient) -> None:
     assert (await client.get("/api/passport/nobody/card.png")).status_code == 404
+
+
+async def test_a_null_byte_in_a_username_is_a_404_not_a_500(client: AsyncClient) -> None:
+    """Percent-encoded, which is the only way it can actually arrive."""
+    for path in ("/api/users/%00", "/api/passport/%00", "/api/passport/%00/card.png"):
+        assert (await client.get(path)).status_code == 404
