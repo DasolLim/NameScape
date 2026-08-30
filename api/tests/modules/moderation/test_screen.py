@@ -125,3 +125,17 @@ def test_the_module_exposes_exactly_one_public_function() -> None:
     ]
 
     assert public == ["screen"]
+
+
+async def test_the_dev_bypass_is_off_by_default_and_explicit_when_on(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fail-closed is the default; the bypass must be opted into deliberately."""
+    from app.config import settings
+
+    assert settings.moderation_dev_bypass is False
+
+    monkeypatch.setattr(settings, "moderation_dev_bypass", True)
+    categories = await classifier.classify("anything at all")
+
+    assert categories.any_positive is False
