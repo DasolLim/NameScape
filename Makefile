@@ -17,10 +17,13 @@ up: vm  ## Start postgres and redis
 down:  ## Stop postgres and redis
 	@$(COMPOSE) down
 
+# Local development has no Anthropic key, and moderation fails closed without
+# one, so nothing could be claimed or proposed. Development only.
 dev: up  ## Run the API and web dev servers
 	@echo "api → http://localhost:8000   web → http://localhost:5173"
 	@trap 'kill 0' EXIT; \
-	  ( cd $(API) && uv run uvicorn app.main:app --reload --port 8000 ) & \
+	  ( cd $(API) && MODERATION_DEV_BYPASS=$${MODERATION_DEV_BYPASS:-true} \
+	      uv run uvicorn app.main:app --reload --port 8000 ) & \
 	  ( cd $(WEB) && npm run dev ) & \
 	  wait
 
