@@ -10,6 +10,7 @@ import SignInSheet from './auth/SignInSheet'
 import BookmarkStar from './bookmarks/BookmarkStar'
 import ClaimSheet from './claim/ClaimSheet'
 import ContestBoard from './contests/ContestBoard'
+import Passport from './passport/Passport'
 import { useAuth } from './auth/store'
 import SearchOverlay from './search/SearchOverlay'
 
@@ -33,6 +34,7 @@ export default function App() {
   const [place, setPlace] = useState<PlaceDetail | null>(null)
   const [showBookmarks, setShowBookmarks] = useState(true)
   const [showNicknames, setShowNicknames] = useState(true)
+  const [passportOpen, setPassportOpen] = useState(false)
   const toggles = useRef({ bookmarks: true, nicknames: true })
   const user = useAuth((state) => state.user)
   const requireAuth = useAuth((state) => state.requireAuth)
@@ -117,7 +119,13 @@ export default function App() {
             Nicknames
           </button>
           {user ? (
-            <span className="pointer-events-auto text-sm text-[#9B9484]">@{user.username}</span>
+            <button
+              type="button"
+              onClick={() => setPassportOpen(true)}
+              className="pointer-events-auto rounded-full px-4 py-2.5 text-sm text-[#9B9484] hover:text-[#F5F1E8]"
+            >
+              @{user.username}
+            </button>
           ) : (
             <button
               type="button"
@@ -129,6 +137,11 @@ export default function App() {
           )}
         </div>
         <SignInSheet />
+        {passportOpen && user && (
+          <div className="pointer-events-auto">
+            <Passport username={user.username} onClose={() => setPassportOpen(false)} />
+          </div>
+        )}
         {place && (
           <div className="pointer-events-auto w-[min(26rem,90vw)] text-left">
             <div className="mb-2 flex items-center justify-end">
