@@ -126,3 +126,21 @@ async def test_a_caption_over_140_characters_is_refused(
     )
 
     assert response.status_code == 422
+
+
+async def test_place_detail_reports_whether_the_viewer_saved_it(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    from app.models import Bookmark
+
+    place = await build_place(db)
+    user = await build_user(db, username="collector")
+    await sign_in(client, user)
+
+    before = (await client.get(f"/api/places/{place.id}")).json()
+    db.add(Bookmark(user_id=user.id, place_id=place.id))
+    await db.flush()
+    after = (await client.get(f"/api/places/{place.id}")).json()
+
+    assert before["bookmarked"] is False
+    assert after["bookmarked"] is True
