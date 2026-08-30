@@ -13,6 +13,7 @@ from typing import Final, Literal
 from sqlalchemy import text as sql
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import observability
 from app.config import settings
 from app.modules.moderation import classifier, normalize
 
@@ -61,6 +62,7 @@ def _blocklist() -> tuple[str, ...]:
 def _reject(reason: str, context: ScreenContext) -> ScreenResult:
     # The reason is logged and never returned: telling users which rule they
     # hit teaches them to beat it.
+    observability.moderation_rejected_total.inc()
     logger.info("moderation rejected", extra={"reason": reason, "place_id": context.place_id})
     return ScreenResult(Verdict.REJECT)
 

@@ -5,6 +5,7 @@ live behind it.
 """
 
 import json
+import logging
 import math
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
@@ -12,8 +13,13 @@ from typing import Any, Final
 from uuid import UUID
 
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 from sqlalchemy import text as sql
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app import observability
+
+logger = logging.getLogger(__name__)
 
 #: The renderer's budget. PRD 11.3: 500 pins at 55fps on mid-range Android.
 MAX_FEATURES: Final = 500
@@ -239,24 +245,35 @@ async def query(
     snapped = snap(bbox, zoom)
     key = cache_key(bbox, zoom)
 
-    cached = await redis.get(key)
+    try:
+        cached = await redis.get(key)
+    except (RedisError, OSError):
+        # A dead cache is slow, not fatal: read straight from Postgres.
+        logger.warning("viewport cache unavailable; reading from postgres")
+        cached = None
+
     if cached is not None:
+        observability.viewport_cache_total.labels(outcome="hit").inc()
         payload = json.loads(cached)
         features = [Feature(**item) for item in payload["features"]]
         nicknames = [Feature(**item) for item in payload["nicknames"]]
     else:
+        observability.viewport_cache_total.labels(outcome="miss").inc()
         features = await _load(session, snapped, band)
         nicknames = await _load_nicknames(session, snapped)
-        await redis.set(
-            key,
-            json.dumps(
-                {
-                    "features": [asdict(f) for f in features],
-                    "nicknames": [asdict(n) for n in nicknames],
-                }
-            ),
-            ex=CACHE_TTL_SECONDS,
-        )
+        try:
+            await redis.set(
+                key,
+                json.dumps(
+                    {
+                        "features": [asdict(f) for f in features],
+                        "nicknames": [asdict(n) for n in nicknames],
+                    }
+                ),
+                ex=CACHE_TTL_SECONDS,
+            )
+        except (RedisError, OSError):
+            logger.warning("viewport cache unwritable; serving uncached")
 
     bookmarks: list[Feature] = []
     if user_id is not None:

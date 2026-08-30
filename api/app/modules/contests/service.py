@@ -13,6 +13,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import observability
 from app.models import Contest, Discovery, Nickname, NicknameHistory, Place, Proposal, User, Vote
 from app.modules import moderation
 from app.modules.contests import resolution
@@ -300,6 +301,7 @@ async def resolve_due(session: AsyncSession) -> list[ContestOutcome]:
             )
         )
 
+    observability.contests_resolved_total.inc(len(outcomes))
     outcomes.extend(await _renew_expired_terms(session, at))
     await session.flush()
     return outcomes

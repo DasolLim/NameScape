@@ -9,6 +9,7 @@ from typing import Final
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import observability
 from app.models import Place
 from app.modules.gazetteer import backends
 
@@ -130,6 +131,13 @@ async def search(
     if not normalized:
         return []
 
+    with observability.search_seconds.time():
+        return await _search(session, normalized, country_code, limit)
+
+
+async def _search(
+    session: AsyncSession, normalized: str, country_code: str | None, limit: int
+) -> list[PlaceResult]:
     geonames_ids = await backends.typesense_ids(normalized, country_code, limit)
     if geonames_ids is None:
         geonames_ids = await _trigram_ids(session, normalized, country_code, limit)

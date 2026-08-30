@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     #: key can still submit. Must never be true in production: it turns the
     #: fail-closed pipeline into a fail-open one.
     moderation_dev_bypass: bool = False
+    sentry_dsn: str = ""
 
 
 settings = Settings()
