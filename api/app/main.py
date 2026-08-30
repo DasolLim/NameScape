@@ -13,6 +13,7 @@ from app.config import settings
 from app.db import engine, get_session
 from app.models import Place, User
 from app.modules import accounts, discoveries, eligibility, gazetteer, viewport
+from app.modules.accounts import bookmarks
 
 app = FastAPI(title="Toponomicon API")
 
@@ -182,6 +183,7 @@ class PlaceDetail(BaseModel):
     lon: float
     etymology: str | None
     claimed_by: str | None
+    bookmarked: bool
     eligibility: str
     eligibility_reason: str | None
 
@@ -251,6 +253,17 @@ async def read_place(
         )
     ).one()
 
+    bookmarked = False
+    if signed_in is not None:
+        bookmarked = (
+            await session.scalar(
+                text(
+                    "SELECT true FROM bookmarks WHERE user_id = :user_id AND place_id = :place_id"
+                ),
+                {"user_id": signed_in.user_id, "place_id": place_id},
+            )
+        ) is True
+
     return PlaceDetail(
         id=place.id,
         geonames_id=place.geonames_id,
@@ -263,6 +276,7 @@ async def read_place(
         lat=float(row[2]),
         etymology=place.etymology,
         claimed_by=row[0],
+        bookmarked=bookmarked,
         eligibility=verdict.status.value,
         eligibility_reason=verdict.reason,
     )
@@ -339,3 +353,37 @@ async def read_viewport(
         features=[ViewportFeature(**asdict(f)) for f in data.features],
         bookmarks=[ViewportFeature(**asdict(f)) for f in data.bookmarks],
     )
+
+
+class SavedPlaceResponse(BaseModel):
+    place_id: int
+    name: str
+    country_code: str | None
+    lon: float
+    lat: float
+
+
+class BookmarksResponse(BaseModel):
+    bookmarks: list[SavedPlaceResponse]
+
+
+@app.post("/api/bookmarks/{place_id}", status_code=204)
+async def add_bookmark(place_id: int, session: SessionDep, user: CurrentUser) -> Response:
+    if await session.get(Place, place_id) is None:
+        raise HTTPException(status_code=404, detail="No such place")
+    await bookmarks.add(session, user.id, place_id)
+    await session.commit()
+    return Response(status_code=204)
+
+
+@app.delete("/api/bookmarks/{place_id}", status_code=204)
+async def remove_bookmark(place_id: int, session: SessionDep, user: CurrentUser) -> Response:
+    await bookmarks.remove(session, user.id, place_id)
+    await session.commit()
+    return Response(status_code=204)
+
+
+@app.get("/api/bookmarks")
+async def read_bookmarks(session: SessionDep, user: CurrentUser) -> BookmarksResponse:
+    saved = await bookmarks.list_for(session, user.id)
+    return BookmarksResponse(bookmarks=[SavedPlaceResponse(**asdict(item)) for item in saved])

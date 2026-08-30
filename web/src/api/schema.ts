@@ -174,10 +174,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bookmarks/{place_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Bookmark */
+        post: operations["add_bookmark_api_bookmarks__place_id__post"];
+        /** Remove Bookmark */
+        delete: operations["remove_bookmark_api_bookmarks__place_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bookmarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Bookmarks */
+        get: operations["read_bookmarks_api_bookmarks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** BookmarksResponse */
+        BookmarksResponse: {
+            /** Bookmarks */
+            bookmarks: components["schemas"]["SavedPlaceResponse"][];
+        };
         /** ClaimRequest */
         ClaimRequest: {
             /** Place Id */
@@ -268,6 +308,8 @@ export interface components {
             etymology: string | null;
             /** Claimed By */
             claimed_by: string | null;
+            /** Bookmarked */
+            bookmarked: boolean;
             /** Eligibility */
             eligibility: string;
             /** Eligibility Reason */
@@ -284,6 +326,19 @@ export interface components {
             joined_at: string;
             /** Discoveries */
             discoveries: number;
+        };
+        /** SavedPlaceResponse */
+        SavedPlaceResponse: {
+            /** Place Id */
+            place_id: number;
+            /** Name */
+            name: string;
+            /** Country Code */
+            country_code: string | null;
+            /** Lon */
+            lon: number;
+            /** Lat */
+            lat: number;
         };
         /** SearchResponse */
         SearchResponse: {
@@ -670,6 +725,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ViewportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_bookmark_api_bookmarks__place_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                place_id: number;
+            };
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_bookmark_api_bookmarks__place_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                place_id: number;
+            };
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_bookmarks_api_bookmarks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookmarksResponse"];
                 };
             };
             /** @description Validation Error */
