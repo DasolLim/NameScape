@@ -17,6 +17,8 @@ export interface LayerFeature {
   lat: number
   name?: string
   count?: number
+  /** A nickname's winning score. Drives collision priority. */
+  score?: number
 }
 
 export interface LayerSpec {
@@ -24,7 +26,7 @@ export interface LayerSpec {
   features: LayerFeature[]
 }
 
-export type LayerName = 'discoveries' | 'clusters' | 'bookmarks'
+export type LayerName = 'discoveries' | 'clusters' | 'bookmarks' | 'nicknames'
 
 /** Both the data and whether it is shown, so one method covers the layer. */
 export type LayerState = Partial<Record<LayerName, LayerSpec>>

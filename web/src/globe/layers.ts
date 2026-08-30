@@ -18,6 +18,7 @@ function toGeoJSON(features: LayerFeature[]): FeatureCollection {
       properties: {
         name: feature.name ?? '',
         count: feature.count ?? 1,
+        score: feature.score ?? 0,
         label: String(feature.count ?? ''),
       },
     })),
@@ -30,6 +31,35 @@ function toGeoJSON(features: LayerFeature[]): FeatureCollection {
  * on each frame, where these are drawn by the GPU.
  */
 function layerDefinitions(name: LayerName): Record<string, unknown>[] {
+  if (name === 'nicknames') {
+    return [
+      {
+        id: 'nicknames-label',
+        type: 'symbol',
+        source: name,
+        layout: {
+          // Quoted, so it never reads as the official name.
+          'text-field': ['concat', '\u201c', ['get', 'name'], '\u201d'],
+          'text-size': 11,
+          'text-font': ['Noto Sans Italic'],
+          // Below the basemap label, and anchored top so it hangs beneath it.
+          'text-offset': [0, 1.1],
+          'text-anchor': 'top',
+          // MapLibre draws lower sort keys first and lets them win a
+          // collision, so the key is the negated score: better-supported
+          // nicknames survive when labels compete for the same space.
+          'symbol-sort-key': ['-', 0, ['get', 'score']],
+          'text-allow-overlap': false,
+        },
+        paint: {
+          'text-color': BRASS,
+          'text-halo-color': INK_950,
+          'text-halo-width': 1.2,
+        },
+      },
+    ]
+  }
+
   if (name === 'clusters') {
     return [
       {
