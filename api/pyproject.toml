@@ -20,6 +20,8 @@ dependencies = [
     "types-pyyaml>=6.0.12.20260815",
     "apscheduler>=3.11.3",
     "pillow>=12.3.0",
+    "prometheus-client>=0.26.0",
+    "sentry-sdk>=2.68.1",
 ]
 
 [dependency-groups]
@@ -32,6 +34,7 @@ dev = [
     "pytest-cov>=7.1.0",
     "schemathesis>=4.25.2",
     "hypothesis>=6.165.10",
+    "locust>=2.46.4",
 ]
 
 [build-system]
