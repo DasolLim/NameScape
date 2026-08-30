@@ -32,7 +32,8 @@ export default function App() {
 
   const [place, setPlace] = useState<PlaceDetail | null>(null)
   const [showBookmarks, setShowBookmarks] = useState(true)
-  const bookmarksVisible = useRef(true)
+  const [showNicknames, setShowNicknames] = useState(true)
+  const toggles = useRef({ bookmarks: true, nicknames: true })
   const user = useAuth((state) => state.user)
   const requireAuth = useAuth((state) => state.requireAuth)
   const loadAuth = useAuth((state) => state.load)
@@ -47,10 +48,17 @@ export default function App() {
 
   const onReady = useCallback((handle: GlobeHandle) => {
     globe.current = handle
+
+    // The idle spin settles constantly, so an un-debounced fetch would hit the
+    // viewport endpoint once per frame the drift pauses on.
+    let pending: ReturnType<typeof setTimeout> | undefined
     handle.onViewportChange((bounds) => {
-      void fetchViewport(bounds)
-        .then((data) => handle.setLayers(toLayerState(data, bookmarksVisible.current)))
-        .catch(() => undefined)
+      clearTimeout(pending)
+      pending = setTimeout(() => {
+        void fetchViewport(bounds)
+          .then((data) => handle.setLayers(toLayerState(data, toggles.current)))
+          .catch(() => undefined)
+      }, 300)
     })
   }, [])
 
@@ -84,7 +92,7 @@ export default function App() {
             onClick={() => {
               const next = !showBookmarks
               setShowBookmarks(next)
-              bookmarksVisible.current = next
+              toggles.current = { ...toggles.current, bookmarks: next }
               globe.current?.setLayers({ bookmarks: { visible: next, features: [] } })
             }}
             className={`pointer-events-auto rounded-full px-4 py-2.5 text-sm ${
@@ -92,6 +100,21 @@ export default function App() {
             }`}
           >
             Bookmarks
+          </button>
+          <button
+            type="button"
+            aria-pressed={showNicknames}
+            onClick={() => {
+              const next = !showNicknames
+              setShowNicknames(next)
+              toggles.current = { ...toggles.current, nicknames: next }
+              globe.current?.setLayers({ nicknames: { visible: next, features: [] } })
+            }}
+            className={`pointer-events-auto rounded-full px-4 py-2.5 text-sm ${
+              showNicknames ? 'text-[#E8A33D]' : 'text-[#6B665C]'
+            }`}
+          >
+            Nicknames
           </button>
           {user ? (
             <span className="pointer-events-auto text-sm text-[#9B9484]">@{user.username}</span>

@@ -28,15 +28,22 @@ function toFeatures(features: ViewportFeature[]) {
     lat: feature.lat,
     name: feature.name ?? undefined,
     count: feature.count,
+    score: feature.score,
   }))
 }
 
+export interface LayerToggles {
+  bookmarks: boolean
+  nicknames: boolean
+}
+
 /** The band decides which layer draws; the others are emptied, not removed. */
-export function toLayerState(data: ViewportResponse, showBookmarks = true): LayerState {
+export function toLayerState(data: ViewportResponse, toggles: LayerToggles): LayerState {
   const aggregated = data.band !== 'pin'
   return {
     discoveries: { visible: !aggregated, features: aggregated ? [] : toFeatures(data.features) },
     clusters: { visible: aggregated, features: aggregated ? toFeatures(data.features) : [] },
-    bookmarks: { visible: showBookmarks, features: toFeatures(data.bookmarks) },
+    bookmarks: { visible: toggles.bookmarks, features: toFeatures(data.bookmarks) },
+    nicknames: { visible: toggles.nicknames, features: toFeatures(data.nicknames) },
   }
 }
