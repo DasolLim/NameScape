@@ -97,7 +97,7 @@ export default function App() {
               toggles.current = { ...toggles.current, bookmarks: next }
               globe.current?.setLayers({ bookmarks: { visible: next, features: [] } })
             }}
-            className={`pointer-events-auto rounded-full px-4 py-2.5 text-sm ${
+            className={`pointer-events-auto rounded-full px-4 py-3 text-sm ${
               showBookmarks ? 'text-[#35A48F]' : 'text-[#6B665C]'
             }`}
           >
@@ -112,7 +112,7 @@ export default function App() {
               toggles.current = { ...toggles.current, nicknames: next }
               globe.current?.setLayers({ nicknames: { visible: next, features: [] } })
             }}
-            className={`pointer-events-auto rounded-full px-4 py-2.5 text-sm ${
+            className={`pointer-events-auto rounded-full px-4 py-3 text-sm ${
               showNicknames ? 'text-[#E8A33D]' : 'text-[#6B665C]'
             }`}
           >
@@ -122,7 +122,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setPassportOpen(true)}
-              className="pointer-events-auto rounded-full px-4 py-2.5 text-sm text-[#9B9484] hover:text-[#F5F1E8]"
+              className="pointer-events-auto rounded-full px-4 py-3 text-sm text-[#9B9484] hover:text-[#F5F1E8]"
             >
               @{user.username}
             </button>
@@ -130,7 +130,7 @@ export default function App() {
             <button
               type="button"
               onClick={openSignIn}
-              className="pointer-events-auto rounded-full px-4 py-2.5 text-sm text-[#9B9484] hover:text-[#F5F1E8]"
+              className="pointer-events-auto rounded-full px-4 py-3 text-sm text-[#9B9484] hover:text-[#F5F1E8]"
             >
               Sign in
             </button>

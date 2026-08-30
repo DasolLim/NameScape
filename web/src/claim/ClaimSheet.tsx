@@ -104,7 +104,7 @@ export default function ClaimSheet({ place, onClaimed }: ClaimSheetProps) {
         type="button"
         disabled={sending}
         onClick={() => void submit()}
-        className="mt-4 w-full rounded-lg bg-[#E8A33D] px-4 py-2.5 text-sm font-medium text-[#4A320F] disabled:opacity-60"
+        className="mt-4 w-full rounded-lg bg-[#E8A33D] px-4 py-3 text-sm font-medium text-[#4A320F] disabled:opacity-60"
       >
         Stamp it
       </button>

@@ -60,7 +60,7 @@ export default function SignInSheet() {
           )}
           <button
             type="submit"
-            className="mt-4 w-full rounded-lg bg-[#E8A33D] px-4 py-2.5 text-sm font-medium text-[#4A320F]"
+            className="mt-4 w-full rounded-lg bg-[#E8A33D] px-4 py-3 text-sm font-medium text-[#4A320F]"
           >
             Send me a link
           </button>
