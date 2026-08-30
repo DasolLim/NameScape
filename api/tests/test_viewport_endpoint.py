@@ -63,3 +63,20 @@ async def test_bookmarks_come_back_only_for_a_signed_in_viewer(
 
     assert anonymous["bookmarks"] == []
     assert [b["name"] for b in signed_in["bookmarks"]] == ["Dildo"]
+
+
+async def test_out_of_range_coordinates_are_refused_not_crashed(client: AsyncClient) -> None:
+    """A longitude beyond the globe is a bad request, not a 500."""
+    response = await client.get(
+        "/api/viewport",
+        params={"west": 1e308, "south": 0, "east": 1e308, "north": 0, "zoom": 8},
+    )
+
+    assert response.status_code == 422
+
+
+async def test_a_place_id_beyond_int64_is_refused_not_crashed(client: AsyncClient) -> None:
+    """Postgres bigint stops at 2**63-1; anything larger is a bad request."""
+    response = await client.get("/api/contests/33499125176547241984")
+
+    assert response.status_code == 422

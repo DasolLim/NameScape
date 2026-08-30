@@ -84,14 +84,31 @@ class ViewportData:
     bookmarks: list[Feature] = field(default_factory=list)
 
 
+def _clamp(value: float, limit: float) -> float:
+    """Keep a coordinate on the globe.
+
+    Contract fuzzing found that math.ceil on a near-DBL_MAX float raises
+    OverflowError, so an absurd bounding box crashed the endpoint instead of
+    returning an empty map.
+    """
+    if value != value:  # NaN
+        return 0.0
+    return max(-limit, min(limit, value))
+
+
 def snap(bbox: BBox, zoom: int) -> BBox:
     """Widen a box out to a fixed grid so small pans share a cache entry."""
     step = _SNAP_DEGREES[band_for(zoom)]
+    west = _clamp(bbox.west, 180.0)
+    east = _clamp(bbox.east, 180.0)
+    south = _clamp(bbox.south, 90.0)
+    north = _clamp(bbox.north, 90.0)
+
     return BBox(
-        west=math.floor(bbox.west / step) * step,
-        south=math.floor(bbox.south / step) * step,
-        east=math.ceil(bbox.east / step) * step,
-        north=math.ceil(bbox.north / step) * step,
+        west=max(-180.0, math.floor(west / step) * step),
+        south=max(-90.0, math.floor(south / step) * step),
+        east=min(180.0, math.ceil(east / step) * step),
+        north=min(90.0, math.ceil(north / step) * step),
     )
 
 
@@ -113,7 +130,14 @@ _EVERYWHERE: Final = "TRUE"
 
 
 def spans_the_world(bbox: BBox) -> bool:
-    return (bbox.east - bbox.west) >= WORLD_SPAN_DEGREES
+    return (bbox.east - bbox.west) >= WORLD_SPAN_DEGREES or (
+        bbox.north - bbox.south
+    ) >= WORLD_SPAN_DEGREES
+
+
+def is_empty(bbox: BBox) -> bool:
+    """A box with no area shows nothing, and PostGIS cannot describe it."""
+    return bbox.east <= bbox.west or bbox.north <= bbox.south
 
 
 def _spatial(bbox: BBox) -> str:
@@ -243,6 +267,9 @@ async def query(
     """What the globe should draw here. Bookmarks are never cached."""
     band = band_for(zoom)
     snapped = snap(bbox, zoom)
+    if is_empty(snapped):
+        return ViewportData(band=band)
+
     key = cache_key(bbox, zoom)
 
     try:

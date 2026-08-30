@@ -60,11 +60,23 @@ jobs:
           git diff --exit-code web/src/api/schema.ts
 
       - name: Schemathesis contract fuzz
+        env:
+          # The limiter answers before body validation, which is right in
+          # production but hides validation failures from the fuzzer.
+          WRITES_PER_MINUTE: "100000"
         run: |
           cd api
           uv run uvicorn app.main:app --port 8000 &
           for i in $(seq 1 20); do curl -sf http://localhost:8000/api/health && break; sleep 1; done
-          uv run schemathesis run http://localhost:8000/openapi.json --max-examples 25
+          # Two checks are excluded, deliberately:
+          #   positive_data_acceptance - a schema-valid sign-in token that does
+          #     not exist must still be 401. The check cannot tell a malformed
+          #     request from a well-formed one that is semantically wrong.
+          #   allow_header_conformance - Starlette's 405 omits the Allow
+          #     header. Framework behaviour, not application logic.
+          uv run schemathesis run http://localhost:8000/openapi.json \
+            --max-examples 25 \
+            --exclude-checks positive_data_acceptance,allow_header_conformance
 
       - name: E2E
         run: |

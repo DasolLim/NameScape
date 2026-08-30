@@ -157,3 +157,38 @@ async def test_nicknames_survive_the_cache(db: AsyncSession, fake_redis: FakeRed
     hit = await viewport.query(db, fake_redis, NEWFOUNDLAND, zoom=12)
 
     assert hit.nicknames == miss.nicknames
+
+
+async def test_an_absurd_bounding_box_is_clamped_rather_than_crashing(
+    db: AsyncSession, fake_redis: FakeRedis
+) -> None:
+    """Found by contract fuzzing: math.ceil on a near-DBL_MAX float overflows."""
+    absurd = service.BBox(
+        west=6.089766962441221e25,
+        south=-5e-324,
+        east=1.7976931348623155e308,
+        north=0.0,
+    )
+
+    snapped = service.snap(absurd, zoom=8)
+
+    assert -180.0 <= snapped.west <= 180.0
+    assert -180.0 <= snapped.east <= 180.0
+    assert -90.0 <= snapped.south <= 90.0
+    assert -90.0 <= snapped.north <= 90.0
+
+    result = await viewport.query(db, fake_redis, absurd, zoom=8)
+    assert result.band is service.Band.PIN
+
+
+async def test_a_zero_area_box_shows_nothing_instead_of_erroring(
+    db: AsyncSession, fake_redis: FakeRedis
+) -> None:
+    """Found by fuzzing: a degenerate box on the antimeridian is antipodal."""
+    await seed(db)
+    degenerate = service.BBox(west=-180.0, south=-90.0, east=-180.0, north=89.0)
+
+    result = await viewport.query(db, fake_redis, degenerate, zoom=0)
+
+    assert result.features == []
+    assert result.nicknames == []

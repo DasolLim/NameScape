@@ -14,7 +14,6 @@ from redis.exceptions import RedisError
 
 from app.config import settings
 
-WRITES_PER_MINUTE: Final = 30
 WINDOW_SECONDS: Final = 60
 
 #: Only these methods are limited; reading is never gated.
@@ -53,6 +52,6 @@ async def enforce(request: Request, redis: Redis) -> None:
         raise HTTPException(
             status_code=503, detail="Writes are temporarily unavailable"
         ) from unreachable
-    if used > WRITES_PER_MINUTE:
+    if used > settings.writes_per_minute:
         # Deliberately vague: the limit is not a hint to work around.
         raise HTTPException(status_code=429, detail="Too many requests")

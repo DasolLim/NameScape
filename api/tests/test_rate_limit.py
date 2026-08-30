@@ -4,6 +4,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import ratelimit
+from app.config import settings
 from app.cache import get_redis
 from app.db import get_session
 from app.main import app
@@ -60,7 +61,7 @@ async def test_a_flood_of_writes_is_refused_with_429(
     client.cookies.set("toponomicon_session", accounts_service._session_for(user).cookie)
 
     statuses = []
-    for index in range(ratelimit.WRITES_PER_MINUTE + 3):
+    for index in range(settings.writes_per_minute + 3):
         response = await client.post(
             "/api/bookmarks/" + str(place.id) if index % 2 else f"/api/bookmarks/{place.id}"
         )
@@ -75,7 +76,7 @@ async def test_reads_are_not_rate_limited(client: AsyncClient, db: AsyncSession)
 
     statuses = [
         (await client.get("/api/search", params={"q": "Dildo"})).status_code
-        for _ in range(ratelimit.WRITES_PER_MINUTE + 5)
+        for _ in range(settings.writes_per_minute + 5)
     ]
 
     assert 429 not in statuses

@@ -2,7 +2,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Annotated, Any, Final, Literal
 
-from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi import Cookie, Depends, FastAPI, HTTPException, Path, Query, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field
 from redis.asyncio import Redis
@@ -122,6 +122,39 @@ async def search_places(
     return SearchResponse(results=[SearchResult(**asdict(result)) for result in found])
 
 
+class ErrorResponse(BaseModel):
+    detail: str
+
+
+def _errors(*codes: int) -> dict[int | str, dict[str, Any]]:
+    """Declare the failures a route can actually produce.
+
+    Contract fuzzing treats an undocumented status code as a defect, and it is
+    right to: a client generated from this schema would not know to handle it.
+    """
+    described = {
+        400: "Malformed request body",
+        401: "Not signed in",
+        403: "Not allowed",
+        404: "Not found",
+        409: "Conflict",
+        422: "Refused",
+        428: "An etymology is required first",
+        429: "Too many requests",
+        503: "Writes are temporarily unavailable",
+    }
+    return {code: {"model": ErrorResponse, "description": described[code]} for code in codes}
+
+
+#: Every write passes the rate limiter, which can refuse or be unavailable,
+#: and a body that is not JSON at all is a 400 rather than a 422.
+WRITE_ERRORS: Final = (400, 429, 503)
+
+#: Postgres bigint. A larger id is a bad request, not a lookup that misses.
+MAX_BIGINT: Final = 2**63 - 1
+PlaceId = Annotated[int, Path(ge=1, le=MAX_BIGINT)]
+
+
 SESSION_COOKIE = "toponomicon_session"
 RedisDep = Annotated[Redis, Depends(get_redis)]
 
@@ -152,7 +185,7 @@ class PassportResponse(BaseModel):
     completion: dict[str, float]
 
 
-@app.post("/api/auth/magic-link", status_code=204)
+@app.post("/api/auth/magic-link", status_code=204, responses=_errors(*WRITE_ERRORS))
 async def request_magic_link(
     body: MagicLinkRequest, session: SessionDep, redis: RedisDep
 ) -> Response:
@@ -165,7 +198,7 @@ async def request_magic_link(
     return Response(status_code=204)
 
 
-@app.post("/api/auth/session")
+@app.post("/api/auth/session", responses=_errors(401, *WRITE_ERRORS))
 async def create_session(body: SessionRequest, session: SessionDep, response: Response) -> Me:
     signed_in = await accounts.authenticate(session, body.token)
     if signed_in is None:
@@ -196,7 +229,11 @@ async def read_me(
 SHARE_CARD_MAX_AGE: Final = 60 * 60
 
 
-@app.get("/api/passport/{username}/card.png", response_class=Response)
+@app.get(
+    "/api/passport/{username}/card.png",
+    response_class=Response,
+    responses=_errors(404),
+)
 async def read_share_card(username: str, session: SessionDep) -> Response:
     found = await accounts.passport(session, username)
     if found is None:
@@ -209,7 +246,7 @@ async def read_share_card(username: str, session: SessionDep) -> Response:
     )
 
 
-@app.get("/api/users/{username}")
+@app.get("/api/users/{username}", responses=_errors(404))
 async def read_profile(username: str, session: SessionDep) -> Profile:
     found = await accounts.profile(session, username)
     if found is None:
@@ -217,7 +254,7 @@ async def read_profile(username: str, session: SessionDep) -> Profile:
     return Profile(**asdict(found))
 
 
-@app.get("/api/passport/{username}")
+@app.get("/api/passport/{username}", responses=_errors(404))
 async def read_passport(username: str, session: SessionDep) -> PassportResponse:
     found = await accounts.passport(session, username)
     if found is None:
@@ -274,9 +311,9 @@ async def _current_user(
 CurrentUser = Annotated[User, Depends(_current_user)]
 
 
-@app.get("/api/places/{place_id}")
+@app.get("/api/places/{place_id}", responses=_errors(404))
 async def read_place(
-    place_id: int,
+    place_id: PlaceId,
     session: SessionDep,
     toponomicon_session: Annotated[str | None, Cookie()] = None,
 ) -> PlaceDetail:
@@ -349,7 +386,7 @@ class UserDiscoveriesResponse(BaseModel):
     discoveries: list[UserDiscoveryResponse]
 
 
-@app.get("/api/discoveries")
+@app.get("/api/discoveries", responses=_errors(401))
 async def read_my_discoveries(session: SessionDep, user: CurrentUser) -> UserDiscoveriesResponse:
     found = await discoveries.for_user(session, user.id)
     return UserDiscoveriesResponse(
@@ -357,7 +394,9 @@ async def read_my_discoveries(session: SessionDep, user: CurrentUser) -> UserDis
     )
 
 
-@app.post("/api/discoveries", status_code=201)
+@app.post(
+    "/api/discoveries", status_code=201, responses=_errors(401, 403, 409, 422, 428, *WRITE_ERRORS)
+)
 async def create_discovery(
     body: ClaimRequest, session: SessionDep, user: CurrentUser
 ) -> DiscoveryResponse:
@@ -406,11 +445,12 @@ class ViewportResponse(BaseModel):
 async def read_viewport(
     session: SessionDep,
     redis: RedisDep,
-    west: float,
-    south: float,
-    east: float,
-    north: float,
-    zoom: int,
+    # Constrained at the edge: a coordinate off the globe is a bad request.
+    west: Annotated[float, Query(ge=-180, le=180)],
+    south: Annotated[float, Query(ge=-90, le=90)],
+    east: Annotated[float, Query(ge=-180, le=180)],
+    north: Annotated[float, Query(ge=-90, le=90)],
+    zoom: Annotated[int, Query(ge=0, le=22)],
     toponomicon_session: Annotated[str | None, Cookie()] = None,
 ) -> ViewportResponse:
     signed_in = (
@@ -445,8 +485,8 @@ class BookmarksResponse(BaseModel):
     bookmarks: list[SavedPlaceResponse]
 
 
-@app.post("/api/bookmarks/{place_id}", status_code=204)
-async def add_bookmark(place_id: int, session: SessionDep, user: CurrentUser) -> Response:
+@app.post("/api/bookmarks/{place_id}", status_code=204, responses=_errors(401, 404, *WRITE_ERRORS))
+async def add_bookmark(place_id: PlaceId, session: SessionDep, user: CurrentUser) -> Response:
     if await session.get(Place, place_id) is None:
         raise HTTPException(status_code=404, detail="No such place")
     await bookmarks.add(session, user.id, place_id)
@@ -454,14 +494,14 @@ async def add_bookmark(place_id: int, session: SessionDep, user: CurrentUser) ->
     return Response(status_code=204)
 
 
-@app.delete("/api/bookmarks/{place_id}", status_code=204)
-async def remove_bookmark(place_id: int, session: SessionDep, user: CurrentUser) -> Response:
+@app.delete("/api/bookmarks/{place_id}", status_code=204, responses=_errors(401, *WRITE_ERRORS))
+async def remove_bookmark(place_id: PlaceId, session: SessionDep, user: CurrentUser) -> Response:
     await bookmarks.remove(session, user.id, place_id)
     await session.commit()
     return Response(status_code=204)
 
 
-@app.get("/api/bookmarks")
+@app.get("/api/bookmarks", responses=_errors(401))
 async def read_bookmarks(session: SessionDep, user: CurrentUser) -> BookmarksResponse:
     saved = await bookmarks.list_for(session, user.id)
     return BookmarksResponse(bookmarks=[SavedPlaceResponse(**asdict(item)) for item in saved])
@@ -498,7 +538,7 @@ class ContestBoard(BaseModel):
     proposals: list[ProposalResponse]
 
 
-@app.post("/api/proposals", status_code=201)
+@app.post("/api/proposals", status_code=201, responses=_errors(401, 422, *WRITE_ERRORS))
 async def create_proposal(
     body: ProposalRequest, session: SessionDep, user: CurrentUser
 ) -> ProposalResponse:
@@ -518,7 +558,7 @@ async def create_proposal(
     )
 
 
-@app.post("/api/votes", status_code=204)
+@app.post("/api/votes", status_code=204, responses=_errors(401, 403, 409, *WRITE_ERRORS))
 async def cast_vote(body: VoteRequest, session: SessionDep, user: CurrentUser) -> Response:
     try:
         await contests.vote(session, body.proposal_id, user.id, body.value)
@@ -540,7 +580,7 @@ async def cast_vote(body: VoteRequest, session: SessionDep, user: CurrentUser) -
 
 @app.get("/api/contests/{place_id}")
 async def read_contest(
-    place_id: int,
+    place_id: PlaceId,
     session: SessionDep,
     toponomicon_session: Annotated[str | None, Cookie()] = None,
 ) -> ContestBoard:

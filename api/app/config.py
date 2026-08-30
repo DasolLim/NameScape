@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     #: fail-closed pipeline into a fail-open one.
     moderation_dev_bypass: bool = False
     sentry_dsn: str = ""
+    #: Writes allowed per address per minute. Raised for contract fuzzing,
+    #: where the limiter would otherwise answer before request validation.
+    writes_per_minute: int = 30
 
 
 settings = Settings()
