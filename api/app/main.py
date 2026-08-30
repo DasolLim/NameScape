@@ -1,14 +1,16 @@
 from dataclasses import asdict
 from datetime import datetime
-from typing import Annotated, Final, Literal
+from typing import Annotated, Any, Final, Literal
 
-from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Response
+from fastapi import Cookie, Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field
 from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.cache import get_redis
+from app import observability, ratelimit
+from app.cache import build_client, get_redis
 from app.config import settings
 from app.db import engine, get_session
 from app.models import Place, User
@@ -16,6 +18,41 @@ from app.modules import accounts, contests, discoveries, eligibility, gazetteer,
 from app.modules.accounts import bookmarks, share_card
 
 app = FastAPI(title="Toponomicon API")
+
+
+# Middleware cannot use FastAPI dependencies, so the client lives on app.state
+# where a test can substitute it.
+observability.configure(app)
+app.state.redis = build_client()
+
+
+@app.middleware("http")
+async def attach_request_id(request: Request, call_next: Any) -> Response:
+    identifier = observability.new_request_id(request.headers.get("X-Request-ID"))
+    token = observability.request_id.set(identifier)
+    try:
+        response: Response = await call_next(request)
+    finally:
+        observability.request_id.reset(token)
+    response.headers["X-Request-ID"] = identifier
+    return response
+
+
+@app.get("/metrics", response_class=Response)
+async def read_metrics() -> Response:
+    return Response(content=observability.render_metrics(), media_type="text/plain")
+
+
+@app.middleware("http")
+async def rate_limit_writes(request: Request, call_next: Any) -> Response:
+    """Applied to every write, so a new endpoint is covered by default."""
+    if request.method in ratelimit.LIMITED_METHODS:
+        try:
+            await ratelimit.enforce(request, app.state.redis)
+        except HTTPException as limited:
+            return JSONResponse(status_code=limited.status_code, content={"detail": limited.detail})
+    response: Response = await call_next(request)
+    return response
 
 
 class Health(BaseModel):

@@ -12,3 +12,9 @@ async def get_redis() -> AsyncIterator[Redis]:
         yield client
     finally:
         await client.aclose()
+
+
+def build_client() -> Redis:
+    """A long-lived client for middleware, which cannot use dependencies."""
+    client: Redis = Redis.from_url(settings.redis_url)
+    return client
