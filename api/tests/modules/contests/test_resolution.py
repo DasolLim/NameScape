@@ -15,9 +15,12 @@ from app.modules.contests.resolution import Outcome, ProposalTally
 EPOCH = datetime(2026, 8, 1, tzinfo=UTC)
 
 
-def tally(id: int, agree: int, disagree: int = 0, minutes: int = 0) -> ProposalTally:
+def tally(proposal_id: int, agree: int, disagree: int = 0, minutes: int = 0) -> ProposalTally:
     return ProposalTally(
-        id=id, agree=agree, disagree=disagree, created_at=EPOCH + timedelta(minutes=minutes)
+        id=proposal_id,
+        agree=agree,
+        disagree=disagree,
+        created_at=EPOCH + timedelta(minutes=minutes),
     )
 
 
@@ -70,9 +73,7 @@ def test_below_quorum_names_a_leading_candidate_instead_of_a_winner() -> None:
 
 
 def test_a_margin_under_ten_percent_goes_to_a_runoff() -> None:
-    outcome = resolution.resolve(
-        [tally(1, agree=20), tally(2, agree=19)], tier=3, incumbent=None
-    )
+    outcome = resolution.resolve([tally(1, agree=20), tally(2, agree=19)], tier=3, incumbent=None)
 
     assert outcome.kind is Outcome.Kind.RUNOFF
     assert outcome.runoff_ids == (1, 2)
@@ -80,18 +81,14 @@ def test_a_margin_under_ten_percent_goes_to_a_runoff() -> None:
 
 def test_a_margin_of_exactly_ten_percent_is_a_win_not_a_runoff() -> None:
     """Boundary: 22 leads 20 by exactly 10%."""
-    outcome = resolution.resolve(
-        [tally(1, agree=22), tally(2, agree=20)], tier=3, incumbent=None
-    )
+    outcome = resolution.resolve([tally(1, agree=22), tally(2, agree=20)], tier=3, incumbent=None)
 
     assert outcome.kind is Outcome.Kind.WINNER
     assert outcome.winner_id == 1
 
 
 def test_an_incumbent_survives_a_challenger_that_does_not_beat_it_by_twenty_percent() -> None:
-    outcome = resolution.resolve(
-        [tally(1, agree=23)], tier=3, incumbent=tally(99, agree=20)
-    )
+    outcome = resolution.resolve([tally(1, agree=23)], tier=3, incumbent=tally(99, agree=20))
 
     assert outcome.kind is Outcome.Kind.WINNER
     assert outcome.winner_id == 99
@@ -100,9 +97,7 @@ def test_an_incumbent_survives_a_challenger_that_does_not_beat_it_by_twenty_perc
 
 def test_a_challenger_exactly_twenty_percent_above_the_incumbent_unseats_it() -> None:
     """Boundary: 24 is exactly 20% above 20."""
-    outcome = resolution.resolve(
-        [tally(1, agree=24)], tier=3, incumbent=tally(99, agree=20)
-    )
+    outcome = resolution.resolve([tally(1, agree=24)], tier=3, incumbent=tally(99, agree=20))
 
     assert outcome.kind is Outcome.Kind.WINNER
     assert outcome.winner_id == 1
@@ -158,8 +153,8 @@ def test_resolve_is_total_and_deterministic(
 ) -> None:
     """It never raises, and the same input always gives the same answer."""
     tallies = [
-        ProposalTally(id=id, agree=agree, disagree=disagree, created_at=EPOCH)
-        for id, agree, disagree in proposals
+        ProposalTally(id=proposal_id, agree=agree, disagree=disagree, created_at=EPOCH)
+        for proposal_id, agree, disagree in proposals
     ]
 
     first = resolution.resolve(tallies, tier=tier, incumbent=None)
