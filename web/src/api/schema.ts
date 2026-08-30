@@ -416,6 +416,11 @@ export interface components {
             score: number;
             /** Is Incumbent */
             is_incumbent: boolean;
+            /**
+             * Is Yours
+             * @default false
+             */
+            is_yours: boolean;
         };
         /** SavedPlaceResponse */
         SavedPlaceResponse: {
@@ -1003,7 +1008,9 @@ export interface operations {
             path: {
                 place_id: number;
             };
-            cookie?: never;
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
         };
         requestBody?: never;
         responses: {

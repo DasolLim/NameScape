@@ -401,6 +401,8 @@ class ProposalResponse(BaseModel):
     disagree: int
     score: int
     is_incumbent: bool
+    #: True when the signed-in viewer wrote it; they cannot vote for their own.
+    is_yours: bool = False
 
 
 class VoteRequest(BaseModel):
@@ -459,8 +461,24 @@ async def cast_vote(body: VoteRequest, session: SessionDep, user: CurrentUser) -
 
 
 @app.get("/api/contests/{place_id}")
-async def read_contest(place_id: int, session: SessionDep) -> ContestBoard:
+async def read_contest(
+    place_id: int,
+    session: SessionDep,
+    toponomicon_session: Annotated[str | None, Cookie()] = None,
+) -> ContestBoard:
     state = await contests.state_for(session, place_id)
+    signed_in = (
+        None
+        if toponomicon_session is None
+        else await accounts.authenticate(session, toponomicon_session)
+    )
+    yours: set[int] = set()
+    if signed_in is not None:
+        rows = await session.execute(
+            text("SELECT id FROM proposals WHERE place_id = :place_id AND user_id = :user_id"),
+            {"place_id": place_id, "user_id": signed_in.user_id},
+        )
+        yours = {int(row[0]) for row in rows}
     return ContestBoard(
         place_id=state.place_id,
         nickname=state.nickname,
@@ -468,5 +486,5 @@ async def read_contest(place_id: int, session: SessionDep) -> ContestBoard:
         closes_at=state.closes_at,
         reopens_at=state.reopens_at,
         quorum=state.quorum,
-        proposals=[ProposalResponse(**asdict(p)) for p in state.proposals],
+        proposals=[ProposalResponse(**asdict(p), is_yours=p.id in yours) for p in state.proposals],
     )

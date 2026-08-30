@@ -5,6 +5,7 @@ countries, which is a curation job, not a script.
 """
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select, text
 
@@ -27,13 +28,20 @@ CAPTIONS = {
 
 async def main() -> None:
     async with SessionLocal() as session:
-        user = (
-            (await session.execute(select(User).where(User.username == "demo"))).scalars().first()
-        )
-        if user is None:
-            user = User(username="demo", email="demo@example.com")
-            session.add(user)
-            await session.flush()
+        # Backdated: voting needs an account at least 48 hours old.
+        settled = datetime.now(UTC) - timedelta(days=5)
+        users: dict[str, User] = {}
+        for name in ("demo", "voter"):
+            found = (
+                (await session.execute(select(User).where(User.username == name))).scalars().first()
+            )
+            if found is None:
+                found = User(username=name, email=f"{name}@example.com")
+                session.add(found)
+                await session.flush()
+            found.created_at = settled
+            users[name] = found
+        user = users["demo"]
 
         created = 0
         for name, caption in CAPTIONS.items():
@@ -50,9 +58,26 @@ async def main() -> None:
                 {"place_id": place.id, "user_id": user.id, "caption": caption},
             )
             created += 1
+        # @voter needs one discovery of their own before they may vote.
+        voter_place = (
+            (await session.execute(select(Place).where(Place.name == "Bastardo"))).scalars().first()
+        )
+        if voter_place is not None:
+            await session.execute(
+                text(
+                    "INSERT INTO discoveries (place_id, user_id, caption) "
+                    "VALUES (:place_id, :user_id, :caption) ON CONFLICT (place_id) DO NOTHING"
+                ),
+                {
+                    "place_id": voter_place.id,
+                    "user_id": users["voter"].id,
+                    "caption": "Umbria's finest.",
+                },
+            )
+
         await session.commit()
 
-    print(f"seeded {created} demo discoveries as @demo")
+    print(f"seeded {created} demo discoveries as @demo, plus @voter")
 
 
 if __name__ == "__main__":
