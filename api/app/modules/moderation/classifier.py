@@ -1,11 +1,14 @@
 """The Claude Haiku classifier and its circuit breaker. Internal."""
 
+import logging
 from typing import Final
 
 import anthropic
 from pydantic import BaseModel
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 MODEL: Final = "claude-haiku-4-5"
 TIMEOUT_SECONDS: Final = 5.0
@@ -72,6 +75,10 @@ breaker = CircuitBreaker(FAILURE_THRESHOLD)
 
 async def classify(text: str) -> Categories:
     """Ask Haiku. Raises on timeout or transport failure; the caller fails closed."""
+    if settings.moderation_dev_bypass:
+        logger.warning("MODERATION CLASSIFIER BYPASSED - development only, never production")
+        return Categories()
+
     client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
     response = await client.with_options(timeout=TIMEOUT_SECONDS).messages.parse(
         model=MODEL,

@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     secret_key: str = "dev-only-change-me"
     anthropic_api_key: str = ""
     blocklist_path: str = "data/blocklist.txt"
+    #: DEVELOPMENT ONLY. Skips the Claude classifier so a machine with no API
+    #: key can still submit. Must never be true in production: it turns the
+    #: fail-closed pipeline into a fail-open one.
+    moderation_dev_bypass: bool = False
 
 
 settings = Settings()

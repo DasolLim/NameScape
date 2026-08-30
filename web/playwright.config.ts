@@ -16,6 +16,9 @@ export default defineConfig({
   webServer: [
     {
       command: 'cd ../api && uv run uvicorn app.main:app --port 8000',
+      // Local dev has no Anthropic key, and moderation fails closed without
+      // one. This bypass is development only and must never be set in prod.
+      env: { MODERATION_DEV_BYPASS: 'true' },
       url: 'http://localhost:8000/api/health',
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
