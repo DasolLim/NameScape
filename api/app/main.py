@@ -12,7 +12,7 @@ from app.cache import get_redis
 from app.config import settings
 from app.db import engine, get_session
 from app.models import Place, User
-from app.modules import accounts, discoveries, eligibility, gazetteer, viewport
+from app.modules import accounts, contests, discoveries, eligibility, gazetteer, viewport
 from app.modules.accounts import bookmarks
 
 app = FastAPI(title="Toponomicon API")
@@ -387,3 +387,86 @@ async def remove_bookmark(place_id: int, session: SessionDep, user: CurrentUser)
 async def read_bookmarks(session: SessionDep, user: CurrentUser) -> BookmarksResponse:
     saved = await bookmarks.list_for(session, user.id)
     return BookmarksResponse(bookmarks=[SavedPlaceResponse(**asdict(item)) for item in saved])
+
+
+class ProposalRequest(BaseModel):
+    place_id: int
+    text: str = Field(min_length=1, max_length=60)
+
+
+class ProposalResponse(BaseModel):
+    id: int
+    text: str
+    agree: int
+    disagree: int
+    score: int
+    is_incumbent: bool
+
+
+class VoteRequest(BaseModel):
+    proposal_id: int
+    value: int = Field(ge=-1, le=1)
+
+
+class ContestBoard(BaseModel):
+    place_id: int
+    nickname: str | None
+    leading_candidate: str | None
+    closes_at: datetime | None
+    reopens_at: datetime | None
+    quorum: int
+    proposals: list[ProposalResponse]
+
+
+@app.post("/api/proposals", status_code=201)
+async def create_proposal(
+    body: ProposalRequest, session: SessionDep, user: CurrentUser
+) -> ProposalResponse:
+    try:
+        proposal = await contests.propose(session, body.place_id, user.id, body.text)
+    except contests.ProposalRejectedError:
+        raise HTTPException(status_code=422, detail="That nickname cannot be used") from None
+
+    await session.commit()
+    return ProposalResponse(
+        id=proposal.id,
+        text=proposal.text,
+        agree=proposal.agree,
+        disagree=proposal.disagree,
+        score=proposal.agree - proposal.disagree,
+        is_incumbent=proposal.is_incumbent,
+    )
+
+
+@app.post("/api/votes", status_code=204)
+async def cast_vote(body: VoteRequest, session: SessionDep, user: CurrentUser) -> Response:
+    try:
+        await contests.vote(session, body.proposal_id, user.id, body.value)
+    except contests.SelfVoteError:
+        raise HTTPException(
+            status_code=403, detail="You cannot vote for your own proposal"
+        ) from None
+    except contests.NotEligibleToVoteError:
+        raise HTTPException(
+            status_code=403,
+            detail="Voting opens once your account is two days old and you have found a place",
+        ) from None
+    except contests.ContestClosedError:
+        raise HTTPException(status_code=409, detail="This contest has closed") from None
+
+    await session.commit()
+    return Response(status_code=204)
+
+
+@app.get("/api/contests/{place_id}")
+async def read_contest(place_id: int, session: SessionDep) -> ContestBoard:
+    state = await contests.state_for(session, place_id)
+    return ContestBoard(
+        place_id=state.place_id,
+        nickname=state.nickname,
+        leading_candidate=state.leading_candidate,
+        closes_at=state.closes_at,
+        reopens_at=state.reopens_at,
+        quorum=state.quorum,
+        proposals=[ProposalResponse(**asdict(p)) for p in state.proposals],
+    )

@@ -209,6 +209,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Proposal */
+        post: operations["create_proposal_api_proposals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/votes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cast Vote */
+        post: operations["cast_vote_api_votes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/contests/{place_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Contest */
+        get: operations["read_contest_api_contests__place_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -226,6 +277,23 @@ export interface components {
             caption: string;
             /** Etymology */
             etymology?: string | null;
+        };
+        /** ContestBoard */
+        ContestBoard: {
+            /** Place Id */
+            place_id: number;
+            /** Nickname */
+            nickname: string | null;
+            /** Leading Candidate */
+            leading_candidate: string | null;
+            /** Closes At */
+            closes_at: string | null;
+            /** Reopens At */
+            reopens_at: string | null;
+            /** Quorum */
+            quorum: number;
+            /** Proposals */
+            proposals: components["schemas"]["ProposalResponse"][];
         };
         /** DiscoveryResponse */
         DiscoveryResponse: {
@@ -327,6 +395,28 @@ export interface components {
             /** Discoveries */
             discoveries: number;
         };
+        /** ProposalRequest */
+        ProposalRequest: {
+            /** Place Id */
+            place_id: number;
+            /** Text */
+            text: string;
+        };
+        /** ProposalResponse */
+        ProposalResponse: {
+            /** Id */
+            id: number;
+            /** Text */
+            text: string;
+            /** Agree */
+            agree: number;
+            /** Disagree */
+            disagree: number;
+            /** Score */
+            score: number;
+            /** Is Incumbent */
+            is_incumbent: boolean;
+        };
         /** SavedPlaceResponse */
         SavedPlaceResponse: {
             /** Place Id */
@@ -414,6 +504,13 @@ export interface components {
             features: components["schemas"]["ViewportFeature"][];
             /** Bookmarks */
             bookmarks: components["schemas"]["ViewportFeature"][];
+        };
+        /** VoteRequest */
+        VoteRequest: {
+            /** Proposal Id */
+            proposal_id: number;
+            /** Value */
+            value: number;
         };
     };
     responses: never;
@@ -818,6 +915,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BookmarksResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_proposal_api_proposals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cast_vote_api_votes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_contest_api_contests__place_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                place_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContestBoard"];
                 };
             };
             /** @description Validation Error */
