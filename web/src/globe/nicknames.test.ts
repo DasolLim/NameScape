@@ -18,8 +18,9 @@ const mapInstance = {
   setStyle: vi.fn(() => {
     styleReloads += 1
   }),
-  addSource: vi.fn((id: string) => {
+  addSource: vi.fn((id: string, spec: { data: { features: unknown[] } }) => {
     sources.set(id, { setData: vi.fn() })
+    return spec
   }),
   getSource: vi.fn((id: string) => sources.get(id)),
   addLayer: vi.fn((layer: Record<string, unknown>) => {
@@ -92,10 +93,8 @@ test('a place with no nickname renders no second label', () => {
 
   globe.setLayers({ nicknames: { visible: true, features: [] } })
 
-  const data = mapInstance.addSource.mock.calls[0]?.[1] as {
-    data: { features: unknown[] }
-  }
-  expect(data.data.features).toHaveLength(0)
+  const spec = mapInstance.addSource.mock.calls[0]?.[1]
+  expect(spec?.data.features).toHaveLength(0)
   globe.destroy()
 })
 
