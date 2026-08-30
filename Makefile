@@ -21,10 +21,14 @@ down:  ## Stop postgres and redis
 # one, so nothing could be claimed or proposed. Development only.
 dev: up  ## Run the API and web dev servers
 	@echo "api → http://localhost:8000   web → http://localhost:5173"
+	@echo "inbox → http://localhost:8025   (sign-in mail lands here)"
 	@trap 'kill 0' EXIT; \
 	  ( cd $(API) && MODERATION_DEV_BYPASS=$${MODERATION_DEV_BYPASS:-true} \
+	      SMTP_HOST=$${SMTP_HOST:-localhost} SMTP_PORT=$${SMTP_PORT:-1025} \
+	      SMTP_START_TLS=$${SMTP_START_TLS:-false} \
 	      uv run uvicorn app.main:app --reload --port 8000 ) & \
-	  ( cd $(WEB) && npm run dev ) & \
+	  ( cd $(WEB) && VITE_DEV_MAIL_INBOX=$${VITE_DEV_MAIL_INBOX:-http://localhost:8025} \
+	      npm run dev ) & \
 	  wait
 
 typecheck:  ## mypy strict + tsc

@@ -9,6 +9,7 @@ import type { GlobeHandle, PlaceRef } from './globe'
 import { fetchPlace, type PlaceDetail } from './api/places'
 import { completeSignInFromUrl } from './auth/completeSignIn'
 import SignInSheet from './auth/SignInSheet'
+import BookmarkList from './bookmarks/BookmarkList'
 import BookmarkStar from './bookmarks/BookmarkStar'
 import ClaimSheet from './claim/ClaimSheet'
 import ContestBoard from './contests/ContestBoard'
@@ -37,6 +38,7 @@ export default function App() {
   const [showBookmarks, setShowBookmarks] = useState(true)
   const [showNicknames, setShowNicknames] = useState(true)
   const [passportOpen, setPassportOpen] = useState(false)
+  const [bookmarksOpen, setBookmarksOpen] = useState(false)
   const toggles = useRef({ bookmarks: true, nicknames: true })
   const user = useAuth((state) => state.user)
   const requireAuth = useAuth((state) => state.requireAuth)
@@ -95,16 +97,13 @@ export default function App() {
           <SearchOverlay onSelect={onSelect} />
           <button
             type="button"
-            aria-pressed={showBookmarks}
-            onClick={() => {
-              const next = !showBookmarks
-              setShowBookmarks(next)
-              toggles.current = { ...toggles.current, bookmarks: next }
-              globe.current?.setLayers({ bookmarks: { visible: next, features: [] } })
-            }}
-            className={`pointer-events-auto rounded-full px-4 py-3 text-sm ${
-              showBookmarks ? 'text-[#35A48F]' : 'text-[#6B665C]'
-            }`}
+            aria-expanded={bookmarksOpen}
+            onClick={() =>
+              // Bookmarks belong to an account, so ask for one rather than
+              // opening an empty panel.
+              requireAuth(() => setBookmarksOpen((open) => !open))
+            }
+            className="pointer-events-auto rounded-full px-4 py-3 text-sm text-[#9B9484] hover:text-[#F5F1E8]"
           >
             Bookmarks
           </button>
@@ -142,6 +141,27 @@ export default function App() {
           )}
         </div>
         <SignInSheet />
+        {bookmarksOpen && user && (
+          <div className="pointer-events-auto">
+            <BookmarkList
+              onClose={() => setBookmarksOpen(false)}
+              showOnGlobe={showBookmarks}
+              onToggleGlobe={(visible) => {
+                setShowBookmarks(visible)
+                toggles.current = { ...toggles.current, bookmarks: visible }
+                globe.current?.setLayers({ bookmarks: { visible, features: [] } })
+              }}
+              onSelect={(place) => {
+                void globe.current?.focusOn({
+                  id: String(place.place_id),
+                  lon: place.lon,
+                  lat: place.lat,
+                  featureClass: 'P',
+                })
+              }}
+            />
+          </div>
+        )}
         {passportOpen && user && (
           <div className="pointer-events-auto">
             <Passport username={user.username} onClose={() => setPassportOpen(false)} />

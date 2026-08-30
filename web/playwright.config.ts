@@ -22,7 +22,13 @@ export default defineConfig({
       command: 'cd ../api && uv run uvicorn app.main:app --port 8000',
       // Local dev has no Anthropic key, and moderation fails closed without
       // one. This bypass is development only and must never be set in prod.
-      env: { MODERATION_DEV_BYPASS: 'true' },
+      env: {
+        MODERATION_DEV_BYPASS: 'true',
+        // Mail must be sent for real, not logged: see e2e/signin-mail.spec.ts.
+        SMTP_HOST: 'localhost',
+        SMTP_PORT: '1025',
+        SMTP_START_TLS: 'false',
+      },
       url: 'http://localhost:8000/api/health',
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,

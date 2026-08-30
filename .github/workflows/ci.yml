@@ -25,6 +25,13 @@ jobs:
         options: >-
           --health-cmd "redis-cli ping" --health-interval 5s
           --health-timeout 3s --health-retries 12
+      # A real inbox, so the sign-in mail is genuinely sent and read back.
+      mailpit:
+        image: axllent/mailpit:latest
+        ports: ["1025:1025", "8025:8025"]
+        env:
+          MP_SMTP_AUTH_ACCEPT_ANY: "true"
+          MP_SMTP_AUTH_ALLOW_INSECURE: "true" 
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -91,6 +98,8 @@ jobs:
           uv run python scripts/seed_demo.py
 
       - name: E2E
+        env:
+          MAIL_INBOX_URL: http://localhost:8025
         run: |
           cd web && npx playwright install chromium --with-deps
           cd .. && make e2e

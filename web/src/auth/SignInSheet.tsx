@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 
 import { useAuth } from './store'
 
+/** Set by `make dev` when a local inbox is running. Empty in production. */
+const DEV_INBOX: string = import.meta.env.VITE_DEV_MAIL_INBOX ?? ''
+
 export default function SignInSheet() {
   const open = useAuth((state) => state.signInOpen)
   const linkSent = useAuth((state) => state.linkSent)
@@ -36,9 +39,23 @@ export default function SignInSheet() {
         </p>
       )}
       {linkSent ? (
-        <p className="text-sm text-[#D6D0C2]">
-          Check your email — the link signs you in and expires in 15 minutes.
-        </p>
+        <div className="text-sm text-[#D6D0C2]">
+          <p>Check your email — the link signs you in and expires in 15 minutes.</p>
+          {DEV_INBOX && (
+            <p className="mt-3 text-xs text-[#9B9484]">
+              Development: mail goes to a local inbox.{' '}
+              <a
+                href={DEV_INBOX}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#E8A33D] underline underline-offset-4"
+              >
+                Open it
+              </a>
+              .
+            </p>
+          )}
+        </div>
       ) : (
         <form
           onSubmit={(event) => {

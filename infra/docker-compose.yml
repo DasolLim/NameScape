@@ -30,6 +30,22 @@ services:
       timeout: 3s
       retries: 12
 
+  # A local inbox, so sign-in mail is genuinely sent and readable in
+  # development instead of being logged and lost.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # web inbox
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
 volumes:
   postgres-data:
   redis-data:

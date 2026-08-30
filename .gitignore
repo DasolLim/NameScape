@@ -27,3 +27,6 @@ web/playwright-report/
 
 # Downloaded GeoNames dumps: hundreds of MB, fetched on demand
 api/.geonames/
+
+# Playwright MCP scratch output
+.playwright-mcp/
