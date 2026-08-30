@@ -18,8 +18,20 @@ async function signIn(context: import('@playwright/test').BrowserContext, userna
   ])
 }
 
+// Distinct words, not a shared prefix with a suffix: proposals within 0.85
+// trigram similarity are merged as near-duplicates, which would fold this
+// run's nickname into the previous one.
+const ADJECTIVES = ['Rueful', 'Sheepish', 'Wistful', 'Bashful', 'Sullen', 'Bemused']
+const NOUNS = ['Headland', 'Narrows', 'Tickle', 'Gulch', 'Sound', 'Reach']
+
+function distinctNickname(): string {
+  const pick = <T,>(items: readonly T[]): T =>
+    items[Math.floor(Math.random() * items.length)]!
+  return `${pick(ADJECTIVES)} ${pick(NOUNS)} ${Math.floor(Math.random() * 9000) + 1000}`
+}
+
 test('a nickname can be proposed and voted on', async ({ page, context }, testInfo) => {
-  const nickname = `The Unfortunate Bay ${Date.now()}`
+  const nickname = distinctNickname()
 
   await signIn(context, 'demo')
   await page.goto('/')
