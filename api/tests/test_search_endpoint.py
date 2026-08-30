@@ -57,3 +57,14 @@ async def test_a_null_byte_in_a_query_does_not_crash(client: AsyncClient) -> Non
 
     assert response.status_code == 200
     assert [r["name"] for r in response.json()["results"]] == ["Dildo"]
+
+
+async def test_a_null_byte_in_any_query_parameter_is_stripped(client: AsyncClient) -> None:
+    """The country filter reaches SQL too, so stripping happens once, centrally."""
+    response = await client.get("/api/search", params={"q": "Dildo"}, headers={"X-Test": "nul"})
+    assert response.status_code == 200
+
+    raw = await client.get("/api/search?q=Dildo&country=%00CA")
+
+    assert raw.status_code in (200, 422)
+    assert raw.status_code != 500

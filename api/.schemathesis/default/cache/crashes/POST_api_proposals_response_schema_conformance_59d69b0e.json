@@ -1,0 +1,101 @@
+{
+  "operation": "POST /api/proposals",
+  "method": "POST",
+  "path_template": "/api/proposals",
+  "fingerprint": "59d69b0e",
+  "case_id": "JD3akv",
+  "code_sample": "curl -X POST -H 'Content-Type: application/json' -H 'Cookie: [Filtered]' -d $'\\x00' http://localhost:8052/api/proposals",
+  "sequence": [
+    {
+      "method": "POST",
+      "url": "http://localhost:8052/api/proposals",
+      "url_template": "http://localhost:8052/api/proposals",
+      "headers": {
+        "User-Agent": "schemathesis/4.25.2",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept": "*/*",
+        "Connection": "keep-alive",
+        "X-Schemathesis-TestCaseId": "JD3akv",
+        "Content-Type": "application/json",
+        "Cookie": "[Filtered]",
+        "Content-Length": "1"
+      },
+      "response": {
+        "status_code": 422,
+        "headers": {
+          "date": "Sun, 30 Aug 2026 05:43:08 GMT",
+          "server": "uvicorn",
+          "content-length": "124",
+          "content-type": "application/json",
+          "x-request-id": "60acd7230ead4a95879af313111872ff"
+        },
+        "body": "{\"detail\":[{\"type\":\"json_invalid\",\"loc\":[\"body\",0],\"msg\":\"JSON decode error\",\"input\":{},\"ctx\":{\"error\":\"Expecting value\"}}]}"
+      },
+      "link": null,
+      "checks": [
+        {
+          "name": "response_schema_conformance",
+          "status": "failure",
+          "message": "Response violates schema\n\n[{\"ctx\":{\"error\":\"Expecting value\"},\"input\":{},\"loc\":[\"body\",0],\"msg\":\"JSON decode error\",\"type\":\"json_invalid\"}] is not of type \"string\"\n\nValidated against the response schema for status code 422.\n\nSchema at /properties/detail:\n\n    {\n        \"type\": \"string\",\n        \"title\": \"Detail\"\n    }\n\nValue:\n\n    [\n        {\n            \"ctx\": {\n                \"error\": \"Expecting value\"\n            },\n            \"input\": {},\n            \"loc\": [\n                \"body\",\n                0\n            ],\n            \"msg\": \"JSON decode error\",\n            \"type\": \"json_invalid\"\n        }\n    ]"
+        }
+      ],
+      "meta": {
+        "generation": {
+          "time": 0.002072165996651165,
+          "mode": "negative"
+        },
+        "components": {
+          "COOKIE": "negative",
+          "BODY": "negative"
+        },
+        "phase": {
+          "name": "fuzzing",
+          "data": {
+            "type": "FuzzingPhaseData",
+            "description": "violates `type` at /properties/toponomicon_session/anyOf/1 (was null, became string)",
+            "location": "/properties/toponomicon_session/anyOf/1",
+            "parameter": "toponomicon_session",
+            "parameter_location": "COOKIE",
+            "mutations": [
+              {
+                "path": [
+                  "toponomicon_session"
+                ],
+                "schema_pointer": "/properties/toponomicon_session/anyOf/1",
+                "channel": "schema",
+                "operator": "change_type",
+                "keywords": [
+                  "type"
+                ],
+                "parameter": "toponomicon_session",
+                "original_value": "null",
+                "new_value": "string"
+              }
+            ]
+          }
+        },
+        "pool_draws": [],
+        "pool_misses": [],
+        "semantic_draws": [],
+        "dictionary_draws": [],
+        "constants_draws": [],
+        "raw_containers": {}
+      },
+      "path": "/api/proposals",
+      "path_parameters": {},
+      "query": {},
+      "case_headers": {},
+      "cookies": {
+        "D#N^A5fF8": "4i",
+        "0": "ms`",
+        "toponomicon_session": "[Filtered]"
+      },
+      "case_body": {
+        "encoding": "base64",
+        "value": "AA=="
+      },
+      "media_type": "application/json",
+      "parent_index": null
+    }
+  ]
+}

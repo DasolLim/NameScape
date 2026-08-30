@@ -16,7 +16,7 @@ from app.db import engine, get_session
 from app.models import Place, User
 from app.modules import accounts, contests, discoveries, eligibility, gazetteer, viewport
 from app.modules.accounts import bookmarks, share_card
-from app.text import strip_nul
+from app.text import StripNulMiddleware, strip_nul
 
 app = FastAPI(title="Toponomicon API")
 
@@ -24,6 +24,8 @@ app = FastAPI(title="Toponomicon API")
 # Middleware cannot use FastAPI dependencies, so the client lives on app.state
 # where a test can substitute it.
 observability.configure(app)
+# Outermost: nothing downstream should ever see a NUL byte.
+app.add_middleware(StripNulMiddleware)
 app.state.redis = build_client()
 
 
