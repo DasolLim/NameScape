@@ -75,6 +75,46 @@ async def main() -> None:
                 },
             )
 
+        # A resolved nickname, so the globe has a second label to render.
+        dildo = (
+            (await session.execute(select(Place).where(Place.name == "Dildo"))).scalars().first()
+        )
+        if dildo is not None:
+            await session.execute(
+                text(
+                    "INSERT INTO proposals "
+                    "(contest_id, place_id, user_id, text, normalized_text, agree, disagree, "
+                    " is_incumbent) "
+                    "VALUES (NULL, :place_id, :user_id, :text, :normalized, 42, 0, true) "
+                    "ON CONFLICT DO NOTHING"
+                ),
+                {
+                    "place_id": dildo.id,
+                    "user_id": users["demo"].id,
+                    "text": "The Cove of Few Regrets",
+                    "normalized": "the cove of few regrets",
+                },
+            )
+            proposal_id = await session.scalar(
+                text(
+                    "SELECT id FROM proposals WHERE place_id = :place_id ORDER BY id DESC LIMIT 1"
+                ),
+                {"place_id": dildo.id},
+            )
+            await session.execute(
+                text(
+                    "INSERT INTO nicknames "
+                    "(place_id, text, proposal_id, score, term_ends_at) "
+                    "VALUES (:place_id, :text, :proposal_id, 42, now() + interval '30 days') "
+                    "ON CONFLICT (place_id) DO NOTHING"
+                ),
+                {
+                    "place_id": dildo.id,
+                    "text": "The Cove of Few Regrets",
+                    "proposal_id": proposal_id,
+                },
+            )
+
         await session.commit()
 
     print(f"seeded {created} demo discoveries as @demo, plus @voter")

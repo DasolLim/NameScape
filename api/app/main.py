@@ -317,11 +317,13 @@ class ViewportFeature(BaseModel):
     name: str | None
     finder: str | None
     country_code: str | None
+    score: int
 
 
 class ViewportResponse(BaseModel):
     band: str
     features: list[ViewportFeature]
+    nicknames: list[ViewportFeature]
     bookmarks: list[ViewportFeature]
 
 
@@ -351,6 +353,7 @@ async def read_viewport(
     return ViewportResponse(
         band=data.band.value,
         features=[ViewportFeature(**asdict(f)) for f in data.features],
+        nicknames=[ViewportFeature(**asdict(f)) for f in data.nicknames],
         bookmarks=[ViewportFeature(**asdict(f)) for f in data.bookmarks],
     )
 

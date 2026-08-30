@@ -500,6 +500,8 @@ export interface components {
             finder: string | null;
             /** Country Code */
             country_code: string | null;
+            /** Score */
+            score: number;
         };
         /** ViewportResponse */
         ViewportResponse: {
@@ -507,6 +509,8 @@ export interface components {
             band: string;
             /** Features */
             features: components["schemas"]["ViewportFeature"][];
+            /** Nicknames */
+            nicknames: components["schemas"]["ViewportFeature"][];
             /** Bookmarks */
             bookmarks: components["schemas"]["ViewportFeature"][];
         };

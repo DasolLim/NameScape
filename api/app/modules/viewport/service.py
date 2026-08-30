@@ -64,12 +64,16 @@ class Feature:
     name: str | None = None
     finder: str | None = None
     country_code: str | None = None
+    #: The winning score, so collisions favour better-supported nicknames.
+    score: int = 0
 
 
 @dataclass(frozen=True, slots=True)
 class ViewportData:
     band: Band
     features: list[Feature] = field(default_factory=list)
+    #: Resolved nicknames in view. Rendered beneath the official name.
+    nicknames: list[Feature] = field(default_factory=list)
     #: Empty unless a signed-in viewer asked.
     bookmarks: list[Feature] = field(default_factory=list)
 
@@ -144,6 +148,15 @@ _PIN_SQL: Final = """
     LIMIT :limit
 """
 
+_NICKNAME_SQL: Final = """
+    SELECT p.id, n.text, n.score,
+           ST_X(p.centroid::geometry) AS lon, ST_Y(p.centroid::geometry) AS lat
+    FROM nicknames n JOIN places p ON p.id = n.place_id
+    WHERE {spatial}
+    ORDER BY n.score DESC
+    LIMIT :limit
+"""
+
 _BOOKMARK_SQL: Final = """
     SELECT p.id, p.name,
            ST_X(p.centroid::geometry) AS lon, ST_Y(p.centroid::geometry) AS lat,
@@ -198,6 +211,22 @@ async def _load(session: AsyncSession, bbox: BBox, band: Band) -> list[Feature]:
     ]
 
 
+async def _load_nicknames(session: AsyncSession, bbox: BBox) -> list[Feature]:
+    rows = (
+        await session.execute(sql(_NICKNAME_SQL.format(spatial=_spatial(bbox))), _bounds(bbox))
+    ).all()
+    return [
+        Feature(
+            lon=float(row[3]),
+            lat=float(row[4]),
+            place_id=int(row[0]),
+            name=row[1],
+            score=int(row[2]),
+        )
+        for row in rows
+    ]
+
+
 async def query(
     session: AsyncSession,
     redis: Redis,
@@ -212,10 +241,22 @@ async def query(
 
     cached = await redis.get(key)
     if cached is not None:
-        features = [Feature(**item) for item in json.loads(cached)]
+        payload = json.loads(cached)
+        features = [Feature(**item) for item in payload["features"]]
+        nicknames = [Feature(**item) for item in payload["nicknames"]]
     else:
         features = await _load(session, snapped, band)
-        await redis.set(key, json.dumps([asdict(f) for f in features]), ex=CACHE_TTL_SECONDS)
+        nicknames = await _load_nicknames(session, snapped)
+        await redis.set(
+            key,
+            json.dumps(
+                {
+                    "features": [asdict(f) for f in features],
+                    "nicknames": [asdict(n) for n in nicknames],
+                }
+            ),
+            ex=CACHE_TTL_SECONDS,
+        )
 
     bookmarks: list[Feature] = []
     if user_id is not None:
@@ -232,4 +273,4 @@ async def query(
             for r in rows
         ]
 
-    return ViewportData(band=band, features=features, bookmarks=bookmarks)
+    return ViewportData(band=band, features=features, nicknames=nicknames, bookmarks=bookmarks)
