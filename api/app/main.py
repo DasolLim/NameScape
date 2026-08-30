@@ -12,7 +12,7 @@ from app.cache import get_redis
 from app.config import settings
 from app.db import engine, get_session
 from app.models import Place, User
-from app.modules import accounts, discoveries, eligibility, gazetteer
+from app.modules import accounts, discoveries, eligibility, gazetteer, viewport
 
 app = FastAPI(title="Toponomicon API")
 
@@ -292,4 +292,50 @@ async def create_discovery(
         place_id=discovery.place_id,
         finder=user.username,
         caption=discovery.caption,
+    )
+
+
+class ViewportFeature(BaseModel):
+    lon: float
+    lat: float
+    count: int
+    place_id: int | None
+    name: str | None
+    finder: str | None
+    country_code: str | None
+
+
+class ViewportResponse(BaseModel):
+    band: str
+    features: list[ViewportFeature]
+    bookmarks: list[ViewportFeature]
+
+
+@app.get("/api/viewport")
+async def read_viewport(
+    session: SessionDep,
+    redis: RedisDep,
+    west: float,
+    south: float,
+    east: float,
+    north: float,
+    zoom: int,
+    toponomicon_session: Annotated[str | None, Cookie()] = None,
+) -> ViewportResponse:
+    signed_in = (
+        None
+        if toponomicon_session is None
+        else await accounts.authenticate(session, toponomicon_session)
+    )
+    data = await viewport.query(
+        session,
+        redis,
+        viewport.BBox(west=west, south=south, east=east, north=north),
+        zoom=zoom,
+        user_id=signed_in.user_id if signed_in is not None else None,
+    )
+    return ViewportResponse(
+        band=data.band.value,
+        features=[ViewportFeature(**asdict(f)) for f in data.features],
+        bookmarks=[ViewportFeature(**asdict(f)) for f in data.bookmarks],
     )

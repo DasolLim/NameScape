@@ -49,6 +49,9 @@ gen-types:  ## Regenerate web/src/api/schema.ts from the API's OpenAPI schema
 seed: migrate  ## Load the curated GeoNames fixture into the dev database
 	@cd $(API) && uv run python scripts/import_geonames.py tests/fixtures/geonames_sample.txt
 
+seed-demo: seed  ## Add demo discoveries so the dev globe has pins
+	@cd $(API) && uv run python scripts/seed_demo.py
+
 migrate: up  ## Apply alembic migrations
 	@cd $(API) && uv run alembic upgrade head
 

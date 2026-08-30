@@ -157,6 +157,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/viewport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Viewport */
+        get: operations["read_viewport_api_viewport_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -316,6 +333,32 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** ViewportFeature */
+        ViewportFeature: {
+            /** Lon */
+            lon: number;
+            /** Lat */
+            lat: number;
+            /** Count */
+            count: number;
+            /** Place Id */
+            place_id: number | null;
+            /** Name */
+            name: string | null;
+            /** Finder */
+            finder: string | null;
+            /** Country Code */
+            country_code: string | null;
+        };
+        /** ViewportResponse */
+        ViewportResponse: {
+            /** Band */
+            band: string;
+            /** Features */
+            features: components["schemas"]["ViewportFeature"][];
+            /** Bookmarks */
+            bookmarks: components["schemas"]["ViewportFeature"][];
         };
     };
     responses: never;
@@ -590,6 +633,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DiscoveryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_viewport_api_viewport_get: {
+        parameters: {
+            query: {
+                west: number;
+                south: number;
+                east: number;
+                north: number;
+                zoom: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewportResponse"];
                 };
             };
             /** @description Validation Error */
