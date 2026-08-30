@@ -144,3 +144,21 @@ async def test_place_detail_reports_whether_the_viewer_saved_it(
 
     assert before["bookmarked"] is False
     assert after["bookmarked"] is True
+
+
+async def test_a_signed_in_user_can_list_their_own_finds(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    place = await build_place(db)
+    user = await build_user(db, username="collector")
+    await sign_in(client, user)
+    await client.post("/api/discoveries", json={"place_id": place.id, "caption": CAPTION})
+
+    response = await client.get("/api/discoveries")
+
+    assert response.status_code == 200
+    assert [d["place_name"] for d in response.json()["discoveries"]] == ["Dildo"]
+
+
+async def test_listing_finds_requires_an_account(client: AsyncClient) -> None:
+    assert (await client.get("/api/discoveries")).status_code == 401

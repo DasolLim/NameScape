@@ -95,3 +95,18 @@ async def test_too_many_magic_links_is_rate_limited(
     response = await client.post("/api/auth/magic-link", json={"email": "eager@example.com"})
 
     assert response.status_code == 429
+
+
+async def test_the_share_card_is_a_cacheable_png(client: AsyncClient, db: AsyncSession) -> None:
+    await build_user(db, username="collector")
+
+    response = await client.get("/api/passport/collector/card.png")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert "max-age" in response.headers["cache-control"]
+    assert response.content[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+async def test_a_card_for_an_unknown_user_is_a_404(client: AsyncClient) -> None:
+    assert (await client.get("/api/passport/nobody/card.png")).status_code == 404
