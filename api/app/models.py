@@ -150,3 +150,26 @@ class Bookmark(Base):
         BigInteger, ForeignKey("places.id", ondelete="CASCADE"), primary_key=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Nickname(Base):
+    """The resolved winner. What the globe renders beneath the official name."""
+
+    __tablename__ = "nicknames"
+
+    place_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("places.id"), primary_key=True)
+    text: Mapped[str] = mapped_column(Text)
+    proposal_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("proposals.id"))
+    score: Mapped[int] = mapped_column(Integer)
+    term_ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class NicknameHistory(Base):
+    __tablename__ = "nickname_history"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    place_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("places.id"))
+    text: Mapped[str] = mapped_column(Text)
+    held_from: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    held_until: Mapped[datetime] = mapped_column(DateTime(timezone=True))
