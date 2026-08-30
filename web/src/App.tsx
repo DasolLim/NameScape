@@ -9,6 +9,7 @@ import { fetchPlace, type PlaceDetail } from './api/places'
 import SignInSheet from './auth/SignInSheet'
 import BookmarkStar from './bookmarks/BookmarkStar'
 import ClaimSheet from './claim/ClaimSheet'
+import ContestBoard from './contests/ContestBoard'
 import { useAuth } from './auth/store'
 import SearchOverlay from './search/SearchOverlay'
 
@@ -111,6 +112,9 @@ export default function App() {
               <BookmarkStar key={place.id} placeId={place.id} saved={place.bookmarked} />
             </div>
             <ClaimSheet place={place} onClaimed={() => undefined} />
+            <div className="mt-3">
+              <ContestBoard placeId={place.id} />
+            </div>
           </div>
         )}
       </div>
