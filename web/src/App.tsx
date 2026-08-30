@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import GlobeCanvas from './GlobeCanvas'
 import { fetchHealth, healthSummary, type Health } from './api/health'
 import type { SearchResult } from './api/search'
+import { fetchViewport, toLayerState } from './api/viewport'
 import type { GlobeHandle, PlaceRef } from './globe'
 import { fetchPlace, type PlaceDetail } from './api/places'
 import SignInSheet from './auth/SignInSheet'
@@ -42,6 +43,11 @@ export default function App() {
 
   const onReady = useCallback((handle: GlobeHandle) => {
     globe.current = handle
+    handle.onViewportChange((bounds) => {
+      void fetchViewport(bounds)
+        .then((data) => handle.setLayers(toLayerState(data)))
+        .catch(() => undefined)
+    })
   }, [])
 
   const onSelect = useCallback(

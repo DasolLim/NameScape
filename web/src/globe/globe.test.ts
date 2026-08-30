@@ -54,11 +54,12 @@ function newGlobe() {
   return createGlobe(document.createElement('div'))
 }
 
-test('the handle exposes exactly the six documented methods', () => {
+test('the handle exposes exactly the seven documented methods', () => {
   expect(Object.keys(newGlobe()).sort()).toEqual([
     'destroy',
     'focusOn',
     'onPlaceTap',
+    'onViewportChange',
     'setLayers',
     'startIdleSpin',
     'stopIdleSpin',

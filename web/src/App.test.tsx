@@ -7,6 +7,7 @@ vi.mock('./globe', () => ({
     focusOn: vi.fn(),
     setLayers: vi.fn(),
     onPlaceTap: vi.fn(),
+    onViewportChange: vi.fn(() => () => undefined),
     startIdleSpin: vi.fn(),
     stopIdleSpin: vi.fn(),
     destroy: vi.fn(),

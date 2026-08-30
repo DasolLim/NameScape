@@ -2,14 +2,17 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 
 import { Map as MapLibreMap } from 'maplibre-gl'
 
+import { applyLayer } from './layers'
 import { BASEMAP_STYLE_URL } from './style'
 import type {
   FocusOptions,
   GlobeHandle,
   GlobeOptions,
+  LayerName,
   LayerState,
   PlaceRef,
   Unsubscribe,
+  Viewport,
 } from './types'
 
 const SPIN_DEGREES_PER_SECOND = 4
@@ -54,11 +57,24 @@ export function createGlobe(container: HTMLElement, options: GlobeOptions = {}):
 
   // setProjection throws if called before the style loads, and a style served
   // from a URL cannot carry the projection, so it is set as soon as it is safe.
+  let pendingLayers: LayerState | null = null
+
   map.on('style.load', () => {
     map.setProjection({ type: 'globe' })
+    if (pendingLayers) {
+      applyLayers(pendingLayers)
+      pendingLayers = null
+    }
   })
 
+  function applyLayers(layers: LayerState): void {
+    for (const [name, spec] of Object.entries(layers)) {
+      if (spec) applyLayer(map, name as LayerName, spec)
+    }
+  }
+
   const tapHandlers = new Set<(placeId: string) => void>()
+  const viewportHandlers = new Set<(viewport: Viewport) => void>()
   const element = map.getContainer()
 
   let frame: number | null = null
@@ -110,6 +126,19 @@ export function createGlobe(container: HTMLElement, options: GlobeOptions = {}):
     element.addEventListener(type, onInteraction, { passive: true })
   }
 
+  map.on('moveend', () => {
+    if (viewportHandlers.size === 0) return
+    const bounds = map.getBounds()
+    const viewport: Viewport = {
+      west: bounds.getWest(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      north: bounds.getNorth(),
+      zoom: Math.round(map.getZoom()),
+    }
+    for (const handler of [...viewportHandlers]) handler(viewport)
+  })
+
   return {
     async focusOn(place: PlaceRef, focus: FocusOptions = {}): Promise<void> {
       if (destroyed) throw new Error('focusOn called on a destroyed globe')
@@ -140,14 +169,26 @@ export function createGlobe(container: HTMLElement, options: GlobeOptions = {}):
       })
     },
 
-    setLayers(_layers: LayerState): void {
-      // Sources and layers arrive with the viewport module in step 15.
+    setLayers(layers: LayerState): void {
+      // Before style load there is nothing to add layers to; hold them.
+      if (!map.isStyleLoaded()) {
+        pendingLayers = { ...pendingLayers, ...layers }
+        return
+      }
+      applyLayers(layers)
     },
 
     onPlaceTap(handler: (placeId: string) => void): Unsubscribe {
       tapHandlers.add(handler)
       return () => {
         tapHandlers.delete(handler)
+      }
+    },
+
+    onViewportChange(handler: (viewport: Viewport) => void): Unsubscribe {
+      viewportHandlers.add(handler)
+      return () => {
+        viewportHandlers.delete(handler)
       }
     },
 
@@ -173,6 +214,7 @@ export function createGlobe(container: HTMLElement, options: GlobeOptions = {}):
         element.removeEventListener(type, onInteraction)
       }
       tapHandlers.clear()
+      viewportHandlers.clear()
       map.remove()
     },
   }
