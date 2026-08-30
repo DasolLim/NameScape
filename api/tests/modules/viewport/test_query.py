@@ -1,4 +1,5 @@
 import inspect
+from datetime import UTC, datetime, timedelta
 
 from fakeredis.aioredis import FakeRedis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -119,3 +120,40 @@ async def test_a_planet_wide_box_does_not_trip_the_antipodal_edge(
 
     assert result.band is service.Band.COUNTRY
     assert result.features[0].country_code == "CA"
+
+
+async def test_nicknames_ride_along_with_the_viewport(
+    db: AsyncSession, fake_redis: FakeRedis
+) -> None:
+    from app.models import Nickname
+    from tests.factories import build_proposal
+
+    await seed(db)
+    author = await build_user(db, username="wit")
+    place = await build_place(db, name="Dull", geonames_id=300_001, lon=-53.5, lat=47.5)
+    proposal = await build_proposal(
+        db, place_id=place.id, user_id=author.id, text="The Understatement"
+    )
+    db.add(
+        Nickname(
+            place_id=place.id,
+            text="The Understatement",
+            proposal_id=proposal.id,
+            score=42,
+            term_ends_at=datetime.now(UTC) + timedelta(days=30),
+        )
+    )
+    await db.flush()
+
+    result = await viewport.query(db, fake_redis, NEWFOUNDLAND, zoom=12)
+
+    assert [(n.name, n.score) for n in result.nicknames] == [("The Understatement", 42)]
+
+
+async def test_nicknames_survive_the_cache(db: AsyncSession, fake_redis: FakeRedis) -> None:
+    await seed(db)
+
+    miss = await viewport.query(db, fake_redis, NEWFOUNDLAND, zoom=12)
+    hit = await viewport.query(db, fake_redis, NEWFOUNDLAND, zoom=12)
+
+    assert hit.nicknames == miss.nicknames
