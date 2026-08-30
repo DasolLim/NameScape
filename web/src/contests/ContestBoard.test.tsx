@@ -101,7 +101,7 @@ test('your own proposal has voting disabled, with the reason given', async () =>
   )
   render(<ContestBoard placeId={1} />)
 
-  const own = (await screen.findAllByRole('article'))[0]
+  const own = (await screen.findAllByRole('article'))[0]!
   const agree = within(own).getByRole('button', { name: /^agree with/i })
   expect(agree).toBeDisabled()
   expect(own).toHaveTextContent(/your own proposal/i)
