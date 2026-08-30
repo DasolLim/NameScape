@@ -19,6 +19,7 @@ const PLACE: PlaceDetail = {
   lon: -53.5442,
   etymology: null,
   claimed_by: null,
+  bookmarked: false,
   eligibility: 'allowed',
   eligibility_reason: null,
 }

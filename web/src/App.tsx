@@ -7,6 +7,7 @@ import { fetchViewport, toLayerState } from './api/viewport'
 import type { GlobeHandle, PlaceRef } from './globe'
 import { fetchPlace, type PlaceDetail } from './api/places'
 import SignInSheet from './auth/SignInSheet'
+import BookmarkStar from './bookmarks/BookmarkStar'
 import ClaimSheet from './claim/ClaimSheet'
 import { useAuth } from './auth/store'
 import SearchOverlay from './search/SearchOverlay'
@@ -29,6 +30,8 @@ export default function App() {
   const globe = useRef<GlobeHandle | null>(null)
 
   const [place, setPlace] = useState<PlaceDetail | null>(null)
+  const [showBookmarks, setShowBookmarks] = useState(true)
+  const bookmarksVisible = useRef(true)
   const user = useAuth((state) => state.user)
   const requireAuth = useAuth((state) => state.requireAuth)
   const loadAuth = useAuth((state) => state.load)
@@ -45,7 +48,7 @@ export default function App() {
     globe.current = handle
     handle.onViewportChange((bounds) => {
       void fetchViewport(bounds)
-        .then((data) => handle.setLayers(toLayerState(data)))
+        .then((data) => handle.setLayers(toLayerState(data, bookmarksVisible.current)))
         .catch(() => undefined)
     })
   }, [])
@@ -74,6 +77,21 @@ export default function App() {
         </div>
         <div className="flex items-center gap-3">
           <SearchOverlay onSelect={onSelect} />
+          <button
+            type="button"
+            aria-pressed={showBookmarks}
+            onClick={() => {
+              const next = !showBookmarks
+              setShowBookmarks(next)
+              bookmarksVisible.current = next
+              globe.current?.setLayers({ bookmarks: { visible: next, features: [] } })
+            }}
+            className={`pointer-events-auto rounded-full px-4 py-2.5 text-sm ${
+              showBookmarks ? 'text-[#35A48F]' : 'text-[#6B665C]'
+            }`}
+          >
+            Bookmarks
+          </button>
           {user ? (
             <span className="pointer-events-auto text-sm text-[#9B9484]">@{user.username}</span>
           ) : (
@@ -89,6 +107,9 @@ export default function App() {
         <SignInSheet />
         {place && (
           <div className="pointer-events-auto w-[min(26rem,90vw)] text-left">
+            <div className="mb-2 flex items-center justify-end">
+              <BookmarkStar key={place.id} placeId={place.id} saved={place.bookmarked} />
+            </div>
             <ClaimSheet place={place} onClaimed={() => undefined} />
           </div>
         )}
