@@ -14,6 +14,7 @@ import type { Layers } from './chrome/LayersMenu'
 import TopBar from './chrome/TopBar'
 import ClaimSheet, { type HeldClaim } from './claim/ClaimSheet'
 import ContestBoard from './contests/ContestBoard'
+import EtymologyPanel from './etymology/EtymologyPanel'
 import GlobeCanvas from './GlobeCanvas'
 import type { GlobeHandle, PlaceRef } from './globe'
 import Passport from './passport/Passport'
@@ -165,6 +166,7 @@ export default function App() {
                 heldClaim={held}
                 onClaimed={() => void loadHeld()}
               />
+              <EtymologyPanel place={place} />
               <div className="mt-3">
                 <ContestBoard placeId={place.id} />
               </div>
