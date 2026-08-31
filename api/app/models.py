@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from geoalchemy2 import Geography
 from geoalchemy2.elements import WKBElement
@@ -7,6 +7,7 @@ from sqlalchemy import (
     CHAR,
     BigInteger,
     Boolean,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -15,7 +16,7 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -124,6 +125,31 @@ class EtymologyCorrection(Base):
     #: Lowered and stripped, so one person cannot file the same claim twice.
     normalized_text: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(Text, default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Puzzle(Base):
+    """One mystery place per day, identical for every player worldwide.
+
+    Generated in batches ninety days ahead and approved by a person. Nothing
+    here is produced while anyone waits: a model call in the request path would
+    be slow, nondeterministic, and able to fail for every player at once at
+    00:00 UTC.
+    """
+
+    __tablename__ = "puzzles"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    puzzle_date: Mapped[date] = mapped_column(Date, unique=True)
+    place_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("places.id", ondelete="CASCADE"), unique=True
+    )
+    #: Ordered clue strings, one revealed per wrong guess.
+    clues: Mapped[list[str]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(Text, default="draft")
+    #: Model identifier, so a bad batch can be traced to what wrote it.
+    generated_by: Mapped[str] = mapped_column(Text)
+    approved_by: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
