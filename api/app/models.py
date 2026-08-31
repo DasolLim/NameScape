@@ -71,6 +71,12 @@ class Place(Base):
     tier: Mapped[int] = mapped_column(SmallInteger)
     population: Mapped[int] = mapped_column(Integer, default=0)
     etymology: Mapped[str | None] = mapped_column(Text)
+    #: How citable the etymology is. NULL means never resolved; 'unknown'
+    #: means resolved to nothing, which is an answer and is not retried.
+    etymology_confidence: Mapped[str | None] = mapped_column(Text)
+    #: A URL for the citable tiers, a marker for the lexicon, a model id for
+    #: the unverified tier.
+    etymology_source: Mapped[str | None] = mapped_column(Text)
 
 
 class Discovery(Base):
