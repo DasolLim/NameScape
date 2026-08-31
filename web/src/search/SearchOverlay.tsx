@@ -4,6 +4,12 @@ import { searchPlaces, type SearchResult } from '../api/search'
 
 const DEBOUNCE_MS = 150
 
+/** Mac shows the command glyph; everything else says Ctrl. */
+const SHORTCUT_LABEL =
+  typeof navigator !== 'undefined' && /Mac|iP(hone|ad)/.test(navigator.platform ?? '')
+    ? '⌘K'
+    : 'Ctrl K'
+
 /** P populated, H hydrographic, T terrain. */
 const FEATURE_GLYPH: Record<string, string> = { P: '●', H: '≈', T: '▲' }
 
@@ -31,6 +37,17 @@ export default function SearchOverlay({ onSelect }: SearchOverlayProps) {
     }
     if (hasOpened.current) triggerRef.current?.focus()
   }, [open])
+
+  // Search is the product, so it gets the shortcut people already expect.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 'k' || !(event.metaKey || event.ctrlKey)) return
+      event.preventDefault()
+      setOpen(true)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -97,15 +114,31 @@ export default function SearchOverlay({ onSelect }: SearchOverlayProps) {
         ref={triggerRef}
         type="button"
         onClick={() => setOpen(true)}
-        className="pointer-events-auto rounded-full bg-[#151C28] px-5 py-3 text-sm text-[#D6D0C2] shadow-lg ring-1 ring-[#2B3646] hover:text-[#F5F1E8]"
+        // The label stays on the element at every width, so the control has
+        // the same name whether or not there is room to print it.
+        aria-label="Search places"
+        className="flex min-h-11 w-full min-w-11 items-center justify-center gap-2.5 rounded-control bg-ink-900 px-2.5 text-sm text-parchment-400 ring-1 ring-ink-600 hover:bg-ink-800 hover:text-parchment-200 sm:min-h-0 sm:justify-start sm:px-3.5 sm:py-2.5"
       >
-        Search places
+        <span aria-hidden="true" className="text-base text-parchment-200 sm:text-sm sm:text-parchment-600">
+          ⌕
+        </span>
+        <span aria-hidden="true" className="hidden flex-1 whitespace-nowrap text-left sm:block">
+          Search places
+        </span>
+        <kbd
+          aria-hidden="true"
+          className="hidden rounded border border-ink-600 px-1.5 py-0.5 text-[11px] text-parchment-600 sm:block"
+        >
+          {SHORTCUT_LABEL}
+        </kbd>
       </button>
     )
   }
 
   return (
-    <div className="pointer-events-auto w-[min(32rem,90vw)] overflow-hidden rounded-xl bg-[#151C28] shadow-2xl ring-1 ring-[#2B3646]">
+    <div className="relative w-full">
+      {/* The field stays in the chrome; only the results overlay the map, so
+          the bar never changes height as you type. */}
       <input
         ref={inputRef}
         role="combobox"
@@ -119,48 +152,58 @@ export default function SearchOverlay({ onSelect }: SearchOverlayProps) {
         }}
         onKeyDown={onKeyDown}
         placeholder="Dildo, Batman, Truth or Consequences…"
-        className="w-full bg-transparent px-5 py-3 text-[#F5F1E8] placeholder:text-[#6B665C] focus:outline-none"
+        className="w-full rounded-control bg-ink-900 px-3.5 py-2.5 text-sm text-parchment-50 ring-1 ring-brass-700/70 outline-none placeholder:text-parchment-600"
       />
 
-      {results.length > 0 && (
-        <ul id="search-results" role="listbox" className="max-h-80 overflow-y-auto">
-          {results.map((place, index) => (
-            <li
-              key={place.id}
-              role="option"
-              aria-selected={index === active}
-              onMouseDown={() => {
-                onSelect(place)
-                close()
-              }}
-              className={`flex cursor-pointer items-baseline gap-3 border-t border-[#2B3646]/60 px-5 py-3 text-sm ${
-                index === active ? 'bg-[#1E2735] text-[#E8A33D]' : 'text-[#F5F1E8]'
-              }`}
-            >
-              <span aria-hidden="true" className="text-[#9B9484]">
-                {FEATURE_GLYPH[place.feature_class] ?? '●'}
-              </span>
-              <span className="flex-1">{place.name}</span>
-              <span className="text-xs text-[#9B9484]">{place.country_code ?? '—'}</span>
-              <span className="text-xs text-[#9B9484]">
-                {place.claimed_by ? `@${place.claimed_by}` : 'unclaimed'}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {(results.length > 0 || (searched && results.length === 0)) && (
+        <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-surface bg-ink-800 shadow-2xl ring-1 ring-ink-600">
+          {results.length > 0 && (
+            <ul id="search-results" role="listbox" className="max-h-80 overflow-y-auto">
+              {results.map((place, index) => (
+                <li
+                  key={place.id}
+                  role="option"
+                  aria-selected={index === active}
+                  onMouseDown={() => {
+                    onSelect(place)
+                    close()
+                  }}
+                  className={`flex cursor-pointer items-baseline gap-3 px-4 py-2.5 text-sm not-first:border-t not-first:border-ink-600/50 ${
+                    index === active ? 'bg-ink-700 text-brass-300' : 'text-parchment-50'
+                  }`}
+                >
+                  <span aria-hidden="true" className="text-parchment-400">
+                    {FEATURE_GLYPH[place.feature_class] ?? '●'}
+                  </span>
+                  <span className="flex-1 truncate">{place.name}</span>
+                  <span className="shrink-0 text-xs text-parchment-400">
+                    {[place.admin1, place.country_code].filter(Boolean).join(' · ') || '·'}
+                  </span>
+                  <span
+                    className={`text-xs ${
+                      place.claimed_by ? 'text-brass-500' : 'text-parchment-600'
+                    }`}
+                  >
+                    {place.claimed_by ? `@${place.claimed_by}` : 'unclaimed'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
 
-      {searched && results.length === 0 && (
-        <div className="border-t border-[#2B3646]/60 px-5 py-4 text-sm text-[#9B9484]">
-          <p>{broadened ? 'Still nothing by that name.' : 'Nothing here by that name.'}</p>
-          {!broadened && (
-            <button
-              type="button"
-              className="mt-2 text-[#E8A33D] underline underline-offset-4"
-              onClick={() => setBroadened(true)}
-            >
-              Search worldwide
-            </button>
+          {searched && results.length === 0 && (
+            <div className="px-4 py-4 text-sm text-parchment-400">
+              <p>{broadened ? 'Still nothing by that name.' : 'Nothing here by that name.'}</p>
+              {!broadened && (
+                <button
+                  type="button"
+                  className="mt-2 text-brass-300 underline underline-offset-4"
+                  onClick={() => setBroadened(true)}
+                >
+                  Search worldwide
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

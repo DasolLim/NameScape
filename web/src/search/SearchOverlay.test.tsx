@@ -48,6 +48,23 @@ async function openAndType(user: ReturnType<typeof userEvent.setup>, text: strin
   await user.type(screen.getByRole('combobox'), text)
 }
 
+test('the collapsed control reads as a search field, not a button labelled Search', () => {
+  setup()
+
+  const trigger = screen.getByRole('button', { name: /search places/i })
+  // A field-shaped affordance, with the shortcut advertised on it.
+  expect(trigger).toHaveTextContent('Search places')
+  expect(trigger).toHaveTextContent(/K$/)
+})
+
+test('the keyboard shortcut opens search from anywhere', async () => {
+  const { user } = setup()
+
+  await user.keyboard('{Meta>}k{/Meta}')
+
+  expect(screen.getByRole('combobox')).toHaveFocus()
+})
+
 test('three keystrokes inside the debounce window produce one request', async () => {
   const { user } = setup()
 
