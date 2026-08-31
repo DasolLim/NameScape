@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import observability
 from app.models import Place
 from app.modules.discoveries import GUEST_FINDER
-from app.modules.gazetteer import backends
+from app.modules.gazetteer import backends, etymology
 
 #: A suggestion list, not a result page.
 DEFAULT_LIMIT: Final = 10
@@ -221,17 +221,23 @@ async def resolve(session: AsyncSession, geonames_id: int) -> Place | None:
 
 
 async def enrich(session: AsyncSession, place_id: int) -> Place:
-    """Attach etymology from Wikidata. Cached: a second call asks nothing."""
+    """Attach what the name means, from the most citable source that has it.
+
+    Resolved once, ever: etymology does not change, so a stored answer is
+    returned untouched. That includes an answer of "nobody knows", which is
+    why a place with no etymology is not looked up again on every view.
+    """
     place = await session.get(Place, place_id)
     if place is None:
         raise LookupError(f"no place with id {place_id}")
 
-    if place.etymology is not None or place.wikidata_id is None:
+    if place.etymology_confidence is not None:
         return place
 
-    etymology = await backends.wikidata_etymology(place.wikidata_id)
-    if etymology is not None:
-        place.etymology = etymology
-        await session.flush()
+    resolved = await etymology.resolve(place)
+    place.etymology = resolved.meaning
+    place.etymology_confidence = resolved.confidence
+    place.etymology_source = resolved.source
+    await session.flush()
 
     return place

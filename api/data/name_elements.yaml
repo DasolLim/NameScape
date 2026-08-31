@@ -1,0 +1,77 @@
+# Curated place-name elements.
+#
+# Rule-based and so medium confidence: the element is right, but whether it is
+# the whole story for a particular place is not something a suffix can know.
+# That is why the meaning is phrased as what the element means rather than as a
+# claim about the settlement.
+#
+# Keep this small and defensible. An element belongs here only when its meaning
+# is uncontested in the toponymic literature; anything arguable is exactly the
+# kind of folk etymology this product must not serve.
+
+suffixes:
+  by:
+    meaning: 'a farmstead or village, from Old Norse "byr"'
+    language: non
+  thorpe:
+    meaning: 'an outlying farmstead, from Old Norse "thorp"'
+    language: non
+  thwaite:
+    meaning: 'a clearing or meadow, from Old Norse "thveit"'
+    language: non
+  chester:
+    meaning: 'a Roman fort, from Latin "castrum" by way of Old English "ceaster"'
+    language: ang
+  caster:
+    meaning: 'a Roman fort, from Latin "castrum" by way of Old English "ceaster"'
+    language: ang
+  cester:
+    meaning: 'a Roman fort, from Latin "castrum" by way of Old English "ceaster"'
+    language: ang
+  ton:
+    meaning: 'an enclosure or homestead, from Old English "tun"'
+    language: ang
+  ham:
+    meaning: 'a homestead or village, from Old English "ham"'
+    language: ang
+  wick:
+    meaning: 'a dwelling or dairy farm, from Old English "wic"'
+    language: ang
+  dale:
+    meaning: 'a valley, from Old Norse "dalr"'
+    language: non
+  fell:
+    meaning: 'a hill or high moor, from Old Norse "fjall"'
+    language: non
+  stan:
+    meaning: 'the land of, from Persian "-stan"'
+    language: fa
+  burg:
+    meaning: 'a fortified place, from Germanic "burg"'
+    language: de
+  furt:
+    meaning: 'a ford, from German "Furt"'
+    language: de
+  berg:
+    meaning: 'a mountain, from Germanic "berg"'
+    language: de
+
+prefixes:
+  llan:
+    meaning: 'a church enclosure, from Welsh "llan"'
+    language: cy
+  aber:
+    meaning: 'a river mouth or confluence, from Welsh and Gaelic "aber"'
+    language: cy
+  inver:
+    meaning: 'a river mouth, from Gaelic "inbhir"'
+    language: gd
+  kil:
+    meaning: 'a church or cell, from Gaelic "cill"'
+    language: gd
+  bally:
+    meaning: 'a settlement or townland, from Irish "baile"'
+    language: ga
+  san:
+    meaning: 'a saint, from Spanish and Italian "san"'
+    language: es
