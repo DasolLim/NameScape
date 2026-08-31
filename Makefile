@@ -57,7 +57,12 @@ gen-types:  ## Regenerate web/src/api/schema.ts from the API's OpenAPI schema
 # Real GeoNames data, not the test fixture: the fixture's ids are
 # illustrative and collide with real ones. GEONAMES overrides the selection,
 # e.g. `make seed GEONAMES="cities500 US GB CA"`.
-GEONAMES ?= cities500 GB CA US
+#
+# A name may carry a feature-class filter, as `US:P`. The full US dump is 470MB,
+# of which 381MB is half a million lakes and a quarter million hills nobody
+# searches for; its populated places are 101MB and still include Boring, Oregon.
+# This default is 744k places in 429MB, which is what the deployment runs.
+GEONAMES ?= cities500 GB CA US:P
 
 seed: migrate  ## Download and import real GeoNames data
 	@cd $(API) && uv run python scripts/fetch_geonames.py $(GEONAMES)

@@ -30,3 +30,8 @@ api/.geonames/
 
 # Playwright MCP scratch output
 .playwright-mcp/
+
+# Vercel CLI
+.vercel/
+# Pulled by `vercel env pull`. The committed template is api/.env.example.
+.env.local
