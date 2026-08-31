@@ -1,25 +1,62 @@
 import { useState } from 'react'
 
 import { ClaimError, claimPlace, type DiscoveryResponse, type PlaceDetail } from '../api/places'
+import { useAuth } from '../auth/store'
+import Countdown from './Countdown'
+import GuestPrompt from './GuestPrompt'
 import StampBadge from './StampBadge'
 
 const MAX_CAPTION = 140
 
+/** A claim this visitor already holds elsewhere. Guests get exactly one. */
+export interface HeldClaim {
+  placeName: string
+  expiresAt: string | null
+}
+
 interface ClaimSheetProps {
   place: PlaceDetail
   onClaimed: (discovery: DiscoveryResponse) => void
+  heldClaim?: HeldClaim | null
 }
 
-export default function ClaimSheet({ place, onClaimed }: ClaimSheetProps) {
+export default function ClaimSheet({ place, onClaimed, heldClaim }: ClaimSheetProps) {
   const [caption, setCaption] = useState('')
   const [etymology, setEtymology] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [claimed, setClaimed] = useState<DiscoveryResponse | null>(null)
   const [sending, setSending] = useState(false)
+  const [settled, setSettled] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
 
+  const signedIn = useAuth((state) => state.status === 'signed-in')
   const needsEtymology = place.eligibility === 'etymology_required'
+  // One claim per guest session, so a guest already holding one is spent.
+  const spent = !signedIn && Boolean(heldClaim)
 
-  if (claimed) return <StampBadge finder={claimed.finder} placeName={place.name} />
+  if (claimed) {
+    // The prompt waits for the animation's last frame. Anything earlier talks
+    // over the moment that earns the ask; anything later (exit intent, the
+    // next action) has already lost it.
+    const showPrompt = Boolean(claimed.expires_at) && settled && !dismissed
+    return (
+      <>
+        <StampBadge
+          finder={claimed.finder}
+          placeName={place.name}
+          expiresAt={claimed.expires_at}
+          onSettled={() => setSettled(true)}
+        />
+        {showPrompt && claimed.expires_at && (
+          <GuestPrompt
+            placeName={place.name}
+            expiresAt={claimed.expires_at}
+            onDismiss={() => setDismissed(true)}
+          />
+        )}
+      </>
+    )
+  }
 
   if (place.eligibility === 'blocked') {
     return (
@@ -105,9 +142,17 @@ export default function ClaimSheet({ place, onClaimed }: ClaimSheetProps) {
         </p>
       )}
 
+      {spent && heldClaim && (
+        <p className="mt-4 rounded-control bg-ink-900 p-3 text-sm text-parchment-200">
+          You are holding {heldClaim.placeName}. Create an account to keep it and claim more
+          places.{' '}
+          {heldClaim.expiresAt && <Countdown expiresAt={heldClaim.expiresAt} />}
+        </p>
+      )}
+
       <button
         type="button"
-        disabled={sending}
+        disabled={sending || spent}
         onClick={() => void submit()}
         className="mt-4 w-full rounded-lg bg-[#E8A33D] px-4 py-3 text-sm font-medium text-[#4A320F] disabled:opacity-60"
       >

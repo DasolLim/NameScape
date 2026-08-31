@@ -1,11 +1,50 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, expect, test, vi } from 'vitest'
 
 import type { PlaceDetail } from '../api/places'
+import { useAuth } from '../auth/store'
 import { server } from '../test/setup'
 import ClaimSheet from './ClaimSheet'
+
+const EXPIRES = new Date(Date.now() + 7 * 24 * 3600_000).toISOString()
+
+/** A guest claim: the API answers with a deadline attached. */
+function guestClaimResponse() {
+  return http.post('/api/discoveries', () =>
+    HttpResponse.json(
+      {
+        id: 7,
+        place_id: 1,
+        finder: 'a guest',
+        caption: 'found it',
+        expires_at: EXPIRES,
+      },
+      { status: 201 },
+    ),
+  )
+}
+
+async function stampAsGuest(): Promise<void> {
+  const user = userEvent.setup()
+  await user.type(screen.getByLabelText(/caption/i), 'Found it on a map.')
+  await user.click(screen.getByRole('button', { name: /stamp it/i }))
+}
+
+/**
+ * Let the stamp land.
+ *
+ * The component settles on animationend or on a timer, whichever comes first,
+ * because a cancelled or missing animation must not cost the visitor the
+ * prompt. jsdom fires no animation, so the timer is what runs here, which is
+ * also the path that has to work when the animation does not.
+ */
+async function letTheStampLand(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 450))
+  })
+}
 
 const PLACE: PlaceDetail = {
   id: 1,
@@ -28,6 +67,7 @@ let posted: Record<string, unknown>[] = []
 
 beforeEach(() => {
   posted = []
+  useAuth.setState({ status: 'anonymous', user: null, signInOpen: false })
   server.use(
     http.post('/api/discoveries', async ({ request }) => {
       posted.push((await request.json()) as Record<string, unknown>)
@@ -134,4 +174,76 @@ test('a conflict says someone was faster, not something generic', async () => {
   await user.click(screen.getByRole('button', { name: /stamp it/i }))
 
   expect(await screen.findByRole('alert')).toHaveTextContent(/found this one first/i)
+})
+
+
+test('a guest sees no prompt until the stamp animation has finished', async () => {
+  server.use(guestClaimResponse())
+  render(<ClaimSheet place={PLACE} onClaimed={vi.fn()} />)
+
+  await stampAsGuest()
+
+  // The stamp has landed; the prompt must wait for its last frame. Firing it
+  // on the claim response instead would talk over the one moment that earns
+  // the ask.
+  expect(await screen.findByTestId('stamp')).toBeVisible()
+  expect(screen.queryByTestId('guest-prompt')).toBeNull()
+
+  await letTheStampLand()
+
+  expect(await screen.findByTestId('guest-prompt')).toBeVisible()
+})
+
+test('the prompt names the place and the deadline', async () => {
+  server.use(guestClaimResponse())
+  render(<ClaimSheet place={PLACE} onClaimed={vi.fn()} />)
+
+  await stampAsGuest()
+  await letTheStampLand()
+
+  const prompt = await screen.findByTestId('guest-prompt')
+  expect(prompt).toHaveTextContent('Dildo')
+  expect(prompt).toHaveTextContent(/days/i)
+})
+
+test('dismissing the prompt does not lose the claim', async () => {
+  const user = userEvent.setup()
+  server.use(guestClaimResponse())
+  render(<ClaimSheet place={PLACE} onClaimed={vi.fn()} />)
+
+  await stampAsGuest()
+  await letTheStampLand()
+  await user.click(await screen.findByRole('button', { name: /later/i }))
+
+  expect(screen.queryByTestId('guest-prompt')).toBeNull()
+  expect(screen.getByTestId('stamp')).toBeVisible()
+  // And the deadline stays on screen, which is the whole point of dismissing
+  // being safe: the claim is still theirs and still running out.
+  expect(screen.getByText(/days left/i)).toBeVisible()
+})
+
+test('a signed-in claim gets no prompt: there is nothing to convert', async () => {
+  useAuth.setState({ status: 'signed-in', user: { username: 'ada' }, signInOpen: false })
+  render(<ClaimSheet place={PLACE} onClaimed={vi.fn()} />)
+
+  await stampAsGuest()
+  await letTheStampLand()
+
+  expect(screen.queryByTestId('guest-prompt')).toBeNull()
+})
+
+test('a guest who already holds a claim is told why, with the control disabled', () => {
+  render(
+    <ClaimSheet
+      place={PLACE}
+      onClaimed={vi.fn()}
+      heldClaim={{ placeName: 'Boring', expiresAt: EXPIRES }}
+    />,
+  )
+
+  // Disabled and explained, not hidden: a control that vanishes reads as a bug.
+  const stamp = screen.getByRole('button', { name: /stamp it/i })
+  expect(stamp).toBeDisabled()
+  expect(screen.getByText(/Boring/)).toBeVisible()
+  expect(screen.getByText(/account/i)).toBeVisible()
 })
