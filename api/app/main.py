@@ -10,7 +10,7 @@ from redis.exceptions import RedisError
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import observability, ratelimit
+from app import languages, observability, ratelimit
 from app.cache import build_client, get_redis
 from app.config import settings
 from app.db import engine, get_session
@@ -18,6 +18,7 @@ from app.models import Place, User
 from app.modules import accounts, contests, discoveries, eligibility, gazetteer, viewport
 from app.modules.accounts import bookmarks, guests, share_card
 from app.modules.contests import activity
+from app.modules.gazetteer import corrections
 from app.text import StripNulMiddleware, strip_nul
 
 app = FastAPI(title="Toponomicon API")
@@ -298,6 +299,16 @@ class PlaceDetail(BaseModel):
     lat: float
     lon: float
     etymology: str | None
+    #: How citable the etymology is: high, medium, unverified, or unknown.
+    #: Null means nobody has looked yet. The interface must never present an
+    #: unverified meaning as a sourced one, so this crosses the boundary.
+    etymology_confidence: str | None
+    #: A URL for the citable tiers, a marker for the lexicon, a model id for
+    #: the unverified tier.
+    etymology_source: str | None
+    #: The language the name is probably in, or null when there is no basis to
+    #: guess. The reveal is offered on names a reader probably cannot read.
+    name_language: str | None
     claimed_by: str | None
     bookmarked: bool
     eligibility: str
@@ -399,11 +410,51 @@ async def read_place(
         lon=float(row[1]),
         lat=float(row[2]),
         etymology=place.etymology,
+        etymology_confidence=place.etymology_confidence,
+        etymology_source=place.etymology_source,
+        name_language=languages.primary_language(place.country_code),
         claimed_by=row[0],
         bookmarked=bookmarked,
         eligibility=verdict.status.value,
         eligibility_reason=verdict.reason,
     )
+
+
+class CorrectionRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=corrections.MAX_LENGTH)
+
+
+class CorrectionResponse(BaseModel):
+    id: int
+    place_id: int
+    status: str
+
+
+@app.post(
+    "/api/places/{place_id}/etymology",
+    status_code=201,
+    responses=_errors(401, 404, 409, 422, *WRITE_ERRORS),
+)
+async def correct_etymology(
+    place_id: PlaceId, body: CorrectionRequest, session: SessionDep, user: CurrentUser
+) -> CorrectionResponse:
+    """File a correction. Held for review, never applied on the spot.
+
+    An account is required because the contributor credit is the point: a
+    correction is somebody putting their name to a claim about the world.
+    """
+    try:
+        filed = await corrections.submit(session, place_id, user.id, body.text)
+    except corrections.UnknownPlaceError:
+        raise HTTPException(status_code=404, detail="No such place") from None
+    except corrections.DuplicateError:
+        raise HTTPException(status_code=409, detail="You have already said that") from None
+    except corrections.RejectedError:
+        # Vague on purpose, exactly as captions are.
+        raise HTTPException(status_code=422, detail="That correction cannot be used") from None
+
+    await session.commit()
+    return CorrectionResponse(id=filed.id, place_id=filed.place_id, status=filed.status)
 
 
 class UserDiscoveryResponse(BaseModel):

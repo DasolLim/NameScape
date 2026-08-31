@@ -174,6 +174,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/places/{place_id}/etymology": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Correct Etymology
+         * @description File a correction. Held for review, never applied on the spot.
+         *
+         *     An account is required because the contributor credit is the point: a
+         *     correction is somebody putting their name to a claim about the world.
+         */
+        post: operations["correct_etymology_api_places__place_id__etymology_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/discoveries": {
         parameters: {
             query?: never;
@@ -370,6 +393,20 @@ export interface components {
             /** Proposals */
             proposals: components["schemas"]["ProposalResponse"][];
         };
+        /** CorrectionRequest */
+        CorrectionRequest: {
+            /** Text */
+            text: string;
+        };
+        /** CorrectionResponse */
+        CorrectionResponse: {
+            /** Id */
+            id: number;
+            /** Place Id */
+            place_id: number;
+            /** Status */
+            status: string;
+        };
         /** DiscoveryResponse */
         DiscoveryResponse: {
             /** Id */
@@ -464,6 +501,12 @@ export interface components {
             lon: number;
             /** Etymology */
             etymology: string | null;
+            /** Etymology Confidence */
+            etymology_confidence: string | null;
+            /** Etymology Source */
+            etymology_source: string | null;
+            /** Name Language */
+            name_language: string | null;
             /** Claimed By */
             claimed_by: string | null;
             /** Bookmarked */
@@ -1034,6 +1077,97 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    correct_etymology_api_places__place_id__etymology_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                place_id: number;
+            };
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CorrectionResponse"];
+                };
+            };
+            /** @description Malformed request body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Refused */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Writes are temporarily unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
