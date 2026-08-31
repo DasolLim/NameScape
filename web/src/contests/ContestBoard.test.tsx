@@ -107,15 +107,18 @@ test('your own proposal has voting disabled, with the reason given', async () =>
   expect(own).toHaveTextContent(/your own proposal/i)
 })
 
-test('voting while signed out opens the sign-in sheet and sends nothing', async () => {
+test('voting while signed out is refused up front, not on click', async () => {
+  // Superseded Addendum A step 26: this used to open the sign-in sheet. The
+  // vote controls are disabled and explained instead, so nothing pretends to
+  // be available and then is not.
   useAuth.setState({ status: 'anonymous', user: null, signInOpen: false })
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
   render(<ContestBoard placeId={1} />)
 
   await user.click((await screen.findAllByRole('button', { name: /^agree with/i }))[0]!)
 
-  expect(useAuth.getState().signInOpen).toBe(true)
   expect(votes).toEqual([])
+  expect(useAuth.getState().signInOpen).toBe(false)
 })
 
 test('a signed-in vote is sent', async () => {
@@ -125,4 +128,18 @@ test('a signed-in vote is sent', async () => {
   await user.click((await screen.findAllByRole('button', { name: /^agree with/i }))[0]!)
 
   await waitFor(() => expect(votes).toEqual([{ proposal_id: 2, value: 1 }]))
+})
+
+
+test('a signed-out visitor cannot vote or propose, and is told why', async () => {
+  useAuth.setState({ status: 'anonymous', user: null, signInOpen: false })
+  render(<ContestBoard placeId={1} />)
+
+  await waitFor(() => expect(screen.getByText(/nickname contest/i)).toBeVisible())
+
+  for (const control of screen.getAllByRole('button', { name: /agree|disagree/i })) {
+    expect(control).toBeDisabled()
+  }
+  expect(screen.getByLabelText(/propose a nickname/i)).toBeDisabled()
+  expect(screen.getByTestId('needs-account')).toHaveTextContent(/account/i)
 })

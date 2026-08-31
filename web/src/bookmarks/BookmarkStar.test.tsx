@@ -57,13 +57,29 @@ test('a failed save rolls the star back', async () => {
   )
 })
 
-test('a signed-out visitor is asked to sign in, and nothing is sent', async () => {
+test('a signed-out visitor cannot save, and nothing is sent', async () => {
+  // Superseded Addendum A step 26: this used to open the sign-in sheet on
+  // click. A control that looks live and then demands an account is a trap,
+  // so it is disabled with the reason beside it instead.
   useAuth.setState({ status: 'anonymous', user: null, signInOpen: false })
   const user = userEvent.setup()
   render(<BookmarkStar placeId={7} saved={false} />)
 
   await user.click(screen.getByRole('button', { name: /save this place/i }))
 
-  expect(useAuth.getState().signInOpen).toBe(true)
   expect(calls).toEqual([])
+  expect(useAuth.getState().signInOpen).toBe(false)
+})
+
+
+test('a signed-out visitor sees the star disabled and told why, not a trap', async () => {
+  useAuth.setState({ status: 'anonymous', user: null, signInOpen: false })
+  render(<BookmarkStar placeId={1} saved={false} />)
+
+  const star = screen.getByRole('button', { name: /save this place/i })
+
+  // Claiming works without an account; saving does not, and a control that
+  // looks live and then demands a sign-in is a trap rather than an offer.
+  expect(star).toBeDisabled()
+  expect(star).toHaveAccessibleDescription(/account/i)
 })

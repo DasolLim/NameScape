@@ -14,6 +14,10 @@ export default function ContestBoard({ placeId }: ContestBoardProps) {
   const [board, setBoard] = useState<ContestBoardData | null>(null)
   const [draft, setDraft] = useState('')
   const requireAuth = useAuth((state) => state.requireAuth)
+  // Voting and proposing need an account; claiming does not. Offering these
+  // to a guest and refusing on click would be a trap, so they are disabled
+  // and the reason is on screen next to them.
+  const needsAccount = useAuth((state) => state.status !== 'signed-in')
 
   const reload = useCallback(() => {
     fetchContest(placeId)
@@ -73,7 +77,7 @@ export default function ContestBoard({ placeId }: ContestBoardProps) {
                 <div className="mt-2 flex items-center gap-2">
                   <button
                     type="button"
-                    disabled={own}
+                    disabled={own || needsAccount}
                     onClick={() => vote(proposal.id, 1)}
                     aria-label={`Agree with ${proposal.text}`}
                     className="rounded-md px-2 py-1 text-xs text-[#35A48F] disabled:opacity-40"
@@ -82,7 +86,7 @@ export default function ContestBoard({ placeId }: ContestBoardProps) {
                   </button>
                   <button
                     type="button"
-                    disabled={own}
+                    disabled={own || needsAccount}
                     onClick={() => vote(proposal.id, -1)}
                     aria-label={`Disagree with ${proposal.text}`}
                     className="rounded-md px-2 py-1 text-xs text-[#C9524E] disabled:opacity-40"
@@ -119,9 +123,20 @@ export default function ContestBoard({ placeId }: ContestBoardProps) {
         <label htmlFor="nickname-draft" className="block text-xs text-[#9B9484]">
           Propose a nickname
         </label>
+        {needsAccount && (
+          <p
+            id="contest-needs-account"
+            data-testid="needs-account"
+            className="mt-1 text-xs text-parchment-400"
+          >
+            Naming and voting need an account. Claiming a place does not.
+          </p>
+        )}
         <input
           id="nickname-draft"
           value={draft}
+          disabled={needsAccount}
+          aria-describedby={needsAccount ? 'contest-needs-account' : undefined}
           maxLength={MAX_NICKNAME}
           onChange={(event) => setDraft(event.target.value.slice(0, MAX_NICKNAME))}
           className="mt-1 w-full rounded-lg bg-[#0E131C] px-3 py-2 text-sm text-[#F5F1E8] ring-1 ring-[#2B3646] focus:outline-none focus:ring-[#E8A33D]"
