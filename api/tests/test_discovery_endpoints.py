@@ -72,14 +72,22 @@ async def test_a_blocked_place_says_so_plainly_and_still_appears(
     assert body["name"] == "Dildo"
 
 
-async def test_claiming_requires_an_account(client: AsyncClient, db: AsyncSession) -> None:
+async def test_claiming_without_an_account_is_allowed_but_expires(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """Superseded Addendum A: claiming is the one write a guest may make.
+
+    It used to be a 401. The claim is now real and locked to the visitor, and
+    the deadline is what gives them a reason to create an account.
+    """
     place = await build_place(db)
 
     response = await client.post(
         "/api/discoveries", json={"place_id": place.id, "caption": CAPTION}
     )
 
-    assert response.status_code == 401
+    assert response.status_code == 201
+    assert response.json()["expires_at"] is not None
 
 
 async def test_a_successful_claim_returns_the_first_finder(

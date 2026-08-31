@@ -184,7 +184,10 @@ export interface paths {
         /** Read My Discoveries */
         get: operations["read_my_discoveries_api_discoveries_get"];
         put?: never;
-        /** Create Discovery */
+        /**
+         * Create Discovery
+         * @description Claiming is the one write that does not require an account.
+         */
         post: operations["create_discovery_api_discoveries_post"];
         delete?: never;
         options?: never;
@@ -369,6 +372,8 @@ export interface components {
             finder: string;
             /** Caption */
             caption: string;
+            /** Expires At */
+            expires_at?: string | null;
         };
         /** ErrorResponse */
         ErrorResponse: {
@@ -1068,6 +1073,7 @@ export interface operations {
             path?: never;
             cookie?: {
                 toponomicon_session?: string | null;
+                toponomicon_guest?: string | null;
             };
         };
         requestBody: {
@@ -1087,15 +1093,6 @@ export interface operations {
             };
             /** @description Malformed request body */
             400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Not signed in */
-            401: {
                 headers: {
                     [name: string]: unknown;
                 };

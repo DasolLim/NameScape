@@ -6,6 +6,7 @@ from fastapi import Cookie, Depends, FastAPI, HTTPException, Path, Query, Reques
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,7 +16,7 @@ from app.config import settings
 from app.db import engine, get_session
 from app.models import Place, User
 from app.modules import accounts, contests, discoveries, eligibility, gazetteer, viewport
-from app.modules.accounts import bookmarks, share_card
+from app.modules.accounts import bookmarks, guests, share_card
 from app.modules.contests import activity
 from app.text import StripNulMiddleware, strip_nul
 
@@ -164,6 +165,9 @@ PlaceId = Annotated[int, Path(ge=1, le=MAX_BIGINT)]
 
 
 SESSION_COOKIE = "toponomicon_session"
+#: A guest's provisional identity. Separate from the session cookie so signing
+#: in never has to think about clearing it.
+GUEST_COOKIE = "toponomicon_guest"
 RedisDep = Annotated[Redis, Depends(get_redis)]
 
 
@@ -300,19 +304,22 @@ class DiscoveryResponse(BaseModel):
     place_id: int
     finder: str
     caption: str
+    #: Set only for a guest claim: when the place is released again.
+    expires_at: datetime | None = None
+
+
+async def _signed_in_user(session: AsyncSession, cookie: str | None) -> User | None:
+    """The account a session cookie names, if it still names one."""
+    signed_in = None if cookie is None else await accounts.authenticate(session, cookie)
+    if signed_in is None:
+        return None
+    return await session.get(User, signed_in.user_id)
 
 
 async def _current_user(
     session: SessionDep, toponomicon_session: Annotated[str | None, Cookie()] = None
 ) -> User:
-    signed_in = (
-        None
-        if toponomicon_session is None
-        else await accounts.authenticate(session, toponomicon_session)
-    )
-    if signed_in is None:
-        raise HTTPException(status_code=401, detail="Sign in to do that")
-    user = await session.get(User, signed_in.user_id)
+    user = await _signed_in_user(session, toponomicon_session)
     if user is None:
         raise HTTPException(status_code=401, detail="Sign in to do that")
     return user
@@ -404,18 +411,67 @@ async def read_my_discoveries(session: SessionDep, user: CurrentUser) -> UserDis
     )
 
 
-@app.post(
-    "/api/discoveries", status_code=201, responses=_errors(401, 403, 409, 422, 428, *WRITE_ERRORS)
-)
+async def _spend_guest_allowance(request: Request, redis: Redis) -> None:
+    """Three claims per address per day, hashed, in Redis only.
+
+    Charged per attempt rather than per success, because counting only the
+    ones that stuck would let one address try places all day until three did.
+    """
+    peer = request.client.host if request.client else "unknown"
+    address = ratelimit.address_of_client(peer, request.headers.get("X-Forwarded-For"))
+
+    try:
+        used = await ratelimit.count(
+            redis, ratelimit.key_for(address, "guest-claim"), ratelimit.DAY_SECONDS
+        )
+    except (RedisError, OSError) as unreachable:
+        # Without Redis the allowance cannot be counted, and an uncounted
+        # guest claim is the one thing this limit exists to prevent.
+        raise HTTPException(
+            status_code=503, detail="Writes are temporarily unavailable"
+        ) from unreachable
+
+    if used > settings.guest_claims_per_day:
+        raise HTTPException(status_code=429, detail="Too many requests")
+
+
+@app.post("/api/discoveries", status_code=201, responses=_errors(403, 409, 422, 428, *WRITE_ERRORS))
 async def create_discovery(
-    body: ClaimRequest, session: SessionDep, user: CurrentUser
+    body: ClaimRequest,
+    request: Request,
+    response: Response,
+    session: SessionDep,
+    redis: RedisDep,
+    toponomicon_session: Annotated[str | None, Cookie()] = None,
+    toponomicon_guest: Annotated[str | None, Cookie()] = None,
 ) -> DiscoveryResponse:
+    """Claiming is the one write that does not require an account."""
+    user = await _signed_in_user(session, toponomicon_session)
+
+    claimant: discoveries.Claimant
+    guest: guests.Guest | None = None
+    if user is not None:
+        claimant = discoveries.UserClaimant(user.id)
+        finder = user.username
+    else:
+        await _spend_guest_allowance(request, redis)
+        # Written in the claim's own transaction, so a claim that fails does
+        # not leave a session behind for a cookie to point at.
+        guest = await guests.resolve(session, toponomicon_guest)
+        claimant = discoveries.GuestClaimant(guest.id)
+        finder = discoveries.GUEST_FINDER
+
     try:
         discovery = await discoveries.claim(
-            session, body.place_id, user.id, body.caption, body.etymology
+            session, body.place_id, claimant, body.caption, body.etymology
         )
     except discoveries.AlreadyClaimedError:
         raise HTTPException(status_code=409, detail="Someone found this one first") from None
+    except discoveries.GuestLimitReachedError:
+        raise HTTPException(
+            status_code=403,
+            detail="You already have a claim. Create an account to keep it and find more.",
+        ) from None
     except discoveries.NotEligibleError as blocked:
         raise HTTPException(status_code=403, detail=str(blocked)) from None
     except discoveries.EtymologyRequiredError as needed:
@@ -425,11 +481,23 @@ async def create_discovery(
         raise HTTPException(status_code=422, detail="That caption cannot be used") from None
 
     await session.commit()
+    if guest is not None:
+        # Only now, with the claim committed, is the cookie worth holding on to.
+        response.set_cookie(
+            GUEST_COOKIE,
+            guest.cookie,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=guests.GUEST_TTL_SECONDS,
+        )
+
     return DiscoveryResponse(
         id=discovery.id,
         place_id=discovery.place_id,
-        finder=user.username,
+        finder=finder,
         caption=discovery.caption,
+        expires_at=discovery.expires_at,
     )
 
 

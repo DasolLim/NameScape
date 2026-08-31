@@ -4,7 +4,7 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Discovery, Place, Proposal, User
+from app.models import Discovery, GuestSession, Place, Proposal, User
 from app.modules.moderation.normalize import normalize
 
 
@@ -13,6 +13,13 @@ async def build_user(session: AsyncSession, *, username: str = "finder", **kwarg
     session.add(user)
     await session.flush()
     return user
+
+
+async def build_guest_session(session: AsyncSession) -> GuestSession:
+    guest = GuestSession()
+    session.add(guest)
+    await session.flush()
+    return guest
 
 
 async def build_discovery(

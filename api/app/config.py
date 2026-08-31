@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     #: Only enable behind a proxy you control: a client can otherwise forge
     #: X-Forwarded-For and get a fresh allowance per request.
     trust_forwarded_for: bool = False
+    #: Claims allowed per address per day without an account. Low on purpose:
+    #: a guest claim locks a place for a week and costs nothing to make.
+    guest_claims_per_day: int = 3
 
     #: Where the sign-in link should send people back to.
     app_base_url: str = "http://localhost:5173"

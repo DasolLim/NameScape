@@ -15,6 +15,7 @@ from redis.exceptions import RedisError
 from app.config import settings
 
 WINDOW_SECONDS: Final = 60
+DAY_SECONDS: Final = 60 * 60 * 24
 
 #: Only these methods are limited; reading is never gated.
 LIMITED_METHODS: Final = frozenset({"POST", "PUT", "PATCH", "DELETE"})
@@ -42,7 +43,7 @@ def address_of_client(peer: str, forwarded_for: str | None) -> str:
     return peer
 
 
-async def count(redis: Redis, key: str) -> int:
+async def count(redis: Redis, key: str, window_seconds: int = WINDOW_SECONDS) -> int:
     """Increment the window and guarantee it expires.
 
     The increment and the expiry go in one pipeline. As two separate calls a
@@ -52,7 +53,7 @@ async def count(redis: Redis, key: str) -> int:
     """
     pipeline = redis.pipeline()
     pipeline.incr(key)
-    pipeline.expire(key, WINDOW_SECONDS, nx=True)
+    pipeline.expire(key, window_seconds, nx=True)
     used, _ = await pipeline.execute()
     return int(used)
 
