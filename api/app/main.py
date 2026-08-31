@@ -16,6 +16,7 @@ from app.db import engine, get_session
 from app.models import Place, User
 from app.modules import accounts, contests, discoveries, eligibility, gazetteer, viewport
 from app.modules.accounts import bookmarks, share_card
+from app.modules.contests import activity
 from app.text import StripNulMiddleware, strip_nul
 
 app = FastAPI(title="Toponomicon API")
@@ -101,6 +102,7 @@ class SearchResult(BaseModel):
     feature_class: str
     feature_code: str
     country_code: str | None
+    admin1: str | None
     tier: int
     lat: float
     lon: float
@@ -189,6 +191,8 @@ class PassportResponse(BaseModel):
     first_finds: int
     countries: dict[str, int]
     completion: dict[str, float]
+    streak_days: int
+    streak_at_risk: bool
 
 
 @app.post("/api/auth/magic-link", status_code=204, responses=_errors(*WRITE_ERRORS))
@@ -611,4 +615,39 @@ async def read_contest(
         reopens_at=state.reopens_at,
         quorum=state.quorum,
         proposals=[ProposalResponse(**asdict(p), is_yours=p.id in yours) for p in state.proposals],
+    )
+
+
+class ActivityResponse(BaseModel):
+    """What the chrome needs to show a reason to return, in one request."""
+
+    contests_closing_soon: int
+    #: None when nobody is signed in.
+    streak_days: int | None
+    streak_at_risk: bool
+
+
+@app.get("/api/activity")
+async def read_activity(
+    session: SessionDep,
+    toponomicon_session: Annotated[str | None, Cookie()] = None,
+) -> ActivityResponse:
+    signed_in = (
+        None
+        if toponomicon_session is None
+        else await accounts.authenticate(session, toponomicon_session)
+    )
+
+    streak_days: int | None = None
+    at_risk = False
+    if signed_in is not None:
+        mine = await accounts.passport(session, signed_in.username)
+        if mine is not None:
+            streak_days = mine.streak_days
+            at_risk = mine.streak_at_risk
+
+    return ActivityResponse(
+        contests_closing_soon=await activity.closing_soon(session),
+        streak_days=streak_days,
+        streak_at_risk=at_risk,
     )

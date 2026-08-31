@@ -295,10 +295,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Activity */
+        get: operations["read_activity_api_activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * ActivityResponse
+         * @description What the chrome needs to show a reason to return, in one request.
+         */
+        ActivityResponse: {
+            /** Contests Closing Soon */
+            contests_closing_soon: number;
+            /** Streak Days */
+            streak_days: number | null;
+            /** Streak At Risk */
+            streak_at_risk: boolean;
+        };
         /** BookmarksResponse */
         BookmarksResponse: {
             /** Bookmarks */
@@ -395,6 +424,10 @@ export interface components {
             completion: {
                 [key: string]: number;
             };
+            /** Streak Days */
+            streak_days: number;
+            /** Streak At Risk */
+            streak_at_risk: boolean;
         };
         /** PlaceDetail */
         PlaceDetail: {
@@ -501,6 +534,8 @@ export interface components {
             feature_code: string;
             /** Country Code */
             country_code: string | null;
+            /** Admin1 */
+            admin1: string | null;
             /** Tier */
             tier: number;
             /** Lat */
@@ -1522,6 +1557,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContestBoard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_activity_api_activity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityResponse"];
                 };
             };
             /** @description Validation Error */
