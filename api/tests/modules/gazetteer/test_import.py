@@ -93,3 +93,20 @@ async def test_rows_are_written_in_batches_not_one_at_a_time(
     assert imported == 41
     # 41 rows in batches of 20 is three statements, not forty-one.
     assert executed <= 3
+
+
+def test_admin_codes_resolve_to_readable_names() -> None:
+    """GeoNames gives some countries numeric admin1 codes. "05 - CA" tells a
+    user nothing; "Newfoundland and Labrador" does."""
+    from app.modules.gazetteer import regions
+
+    lookup = regions.parse(
+        "CA.05\tNewfoundland and Labrador\tNewfoundland and Labrador\t6354959\n"
+        "US.FL\tFlorida\tFlorida\t4155751\n"
+    )
+
+    assert lookup == {("CA", "05"): "Newfoundland and Labrador", ("US", "FL"): "Florida"}
+    assert regions.name_for(lookup, "CA", "05") == "Newfoundland and Labrador"
+    # An unknown pair falls back to the raw code rather than blanking it.
+    assert regions.name_for(lookup, "GB", "ENG") == "ENG"
+    assert regions.name_for(lookup, None, None) is None

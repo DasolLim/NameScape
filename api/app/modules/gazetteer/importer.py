@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Place
+from app.modules.gazetteer import regions
 
 #: P populated, H hydrographic, T terrain. Everything else is not a place we play on.
 ALLOWED_FEATURE_CLASSES: Final = frozenset({"P", "H", "T"})
@@ -35,7 +36,9 @@ def assign_tier(feature_code: str, population: int) -> int:
     return 3
 
 
-def _row_to_values(fields: list[str]) -> dict[str, object] | None:
+def _row_to_values(
+    fields: list[str], admin_names: regions.RegionLookup | None = None
+) -> dict[str, object] | None:
     if len(fields) < _GEONAMES_COLUMNS or fields[6] not in ALLOWED_FEATURE_CLASSES:
         return None
 
@@ -52,7 +55,7 @@ def _row_to_values(fields: list[str]) -> dict[str, object] | None:
         "feature_class": fields[6],
         "feature_code": fields[7],
         "country_code": fields[8] or None,
-        "admin1": fields[10] or None,
+        "admin1": regions.name_for(admin_names or {}, fields[8] or None, fields[10] or None),
         "centroid": f"SRID=4326;POINT({float(fields[5])} {float(fields[4])})",
         "tier": assign_tier(fields[7], population),
         "population": population,
@@ -87,7 +90,9 @@ async def _write(session: AsyncSession, batch: list[dict[str, object]]) -> None:
     )
 
 
-async def import_geonames(session: AsyncSession, dump: Path) -> int:
+async def import_geonames(
+    session: AsyncSession, dump: Path, admin_names: regions.RegionLookup | None = None
+) -> int:
     """Load a GeoNames dump into places. Idempotent on geonames_id."""
     imported = 0
     batch: list[dict[str, object]] = []
@@ -95,7 +100,7 @@ async def import_geonames(session: AsyncSession, dump: Path) -> int:
 
     with dump.open(encoding="utf-8") as handle:
         for line in handle:
-            values = _row_to_values(line.rstrip("\n").split("\t"))
+            values = _row_to_values(line.rstrip("\n").split("\t"), admin_names)
             if values is None:
                 continue
 

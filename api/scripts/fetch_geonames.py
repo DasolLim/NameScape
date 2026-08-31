@@ -18,6 +18,7 @@ from typing import Final
 import httpx
 
 from app.db import SessionLocal
+from app.modules.gazetteer import regions
 from app.modules.gazetteer.importer import import_geonames
 
 BASE_URL: Final = "https://download.geonames.org/export/dump"
@@ -55,12 +56,28 @@ async def download(name: str) -> Path:
     return extracted
 
 
+async def admin_names() -> regions.RegionLookup:
+    """The admin1 code table, so regions read as names rather than numbers."""
+    path = CACHE / "admin1CodesASCII.txt"
+    if not path.exists():
+        CACHE.mkdir(exist_ok=True)
+        print("admin1 codes: downloading…")
+        async with httpx.AsyncClient(timeout=120.0, follow_redirects=True) as client:
+            response = await client.get(f"{BASE_URL}/admin1CodesASCII.txt")
+            response.raise_for_status()
+            path.write_bytes(response.content)
+    return regions.load(path)
+
+
 async def main(names: list[str]) -> None:
+    lookup = await admin_names()
+    print(f"admin1 codes: {len(lookup):,} regions")
+
     for name in names:
         dump = await download(name)
         print(f"{name}: importing…")
         async with SessionLocal() as session:
-            imported = await import_geonames(session, dump)
+            imported = await import_geonames(session, dump, lookup)
             await session.commit()
         print(f"{name}: imported {imported:,} places")
 
