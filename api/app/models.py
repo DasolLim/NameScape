@@ -102,6 +102,31 @@ class Discovery(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class EtymologyCorrection(Base):
+    """A reader's claim that a stored etymology is wrong.
+
+    Held for review rather than applied. The entry it would replace is cited,
+    and a correction is a claim about the world, so a person decides. Kept
+    after review either way: this is the record the contributor credit rests
+    on, and knowing what was rejected is worth as much as knowing what stood.
+    """
+
+    __tablename__ = "etymology_corrections"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    place_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("places.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    text: Mapped[str] = mapped_column(Text)
+    #: Lowered and stripped, so one person cannot file the same claim twice.
+    normalized_text: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text, default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class MagicLink(Base):
     """A single-use sign-in token. Only the hash is stored."""
 
