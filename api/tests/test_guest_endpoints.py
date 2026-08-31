@@ -165,6 +165,31 @@ async def test_signing_in_keeps_the_claim_and_clears_the_guest_cookie(
     assert client.cookies.get(GUEST_COOKIE) is None
 
 
+async def test_a_guest_reads_their_own_claim_with_its_deadline(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    place = await build_place(db)
+    await client.post("/api/discoveries", json={"place_id": place.id, "caption": CAPTION})
+
+    mine = await client.get("/api/discoveries")
+
+    assert mine.status_code == 200
+    found = mine.json()["discoveries"]
+    assert [item["place_id"] for item in found] == [place.id]
+    assert found[0]["expires_at"] is not None
+
+
+async def test_a_visitor_who_has_claimed_nothing_gets_an_empty_list(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """Not a 401: an empty answer is the truth, and the UI needs it to know
+    whether the claim control should be offered or explained."""
+    mine = await client.get("/api/discoveries")
+
+    assert mine.status_code == 200
+    assert mine.json()["discoveries"] == []
+
+
 async def test_a_guest_cannot_vote(client: AsyncClient, db: AsyncSession) -> None:
     response = await client.post("/api/votes", json={"proposal_id": 1, "direction": "up"})
 

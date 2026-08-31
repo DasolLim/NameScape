@@ -408,15 +408,36 @@ class UserDiscoveryResponse(BaseModel):
     country_code: str | None
     caption: str
     created_at: datetime
+    #: Set only on a guest claim: when this place is released again.
+    expires_at: datetime | None = None
 
 
 class UserDiscoveriesResponse(BaseModel):
     discoveries: list[UserDiscoveryResponse]
 
 
-@app.get("/api/discoveries", responses=_errors(401))
-async def read_my_discoveries(session: SessionDep, user: CurrentUser) -> UserDiscoveriesResponse:
-    found = await discoveries.for_user(session, user.id)
+@app.get("/api/discoveries")
+async def read_my_discoveries(
+    session: SessionDep,
+    toponomicon_session: Annotated[str | None, Cookie()] = None,
+    toponomicon_guest: Annotated[str | None, Cookie()] = None,
+) -> UserDiscoveriesResponse:
+    """Whatever the caller has claimed, account or not.
+
+    A guest has to be able to read their own claim: it is the only way the
+    deadline survives a reload, and the only way the interface can explain the
+    claim control instead of offering a second one. Not a 401 either way -
+    a visitor who has claimed nothing has claimed nothing.
+    """
+    user = await _signed_in_user(session, toponomicon_session)
+    claimant: discoveries.Claimant | None
+    if user is not None:
+        claimant = discoveries.UserClaimant(user.id)
+    else:
+        guest_id = guests.identify(toponomicon_guest)
+        claimant = None if guest_id is None else discoveries.GuestClaimant(guest_id)
+
+    found = [] if claimant is None else await discoveries.for_user(session, claimant)
     return UserDiscoveriesResponse(
         discoveries=[UserDiscoveryResponse(**asdict(item)) for item in found]
     )

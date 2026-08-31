@@ -114,7 +114,7 @@ async def test_signing_in_to_an_existing_account_merges_into_it(
     assert session is not None
     assert session.user_id == existing.id
     assert await db.scalar(select(func.count()).select_from(User)) == 1
-    mine = await discoveries.for_user(db, existing.id)
+    mine = await discoveries.for_user(db, discoveries.UserClaimant(existing.id))
     assert {found.place_name for found in mine} == {"Dull", "Boring"}
 
 

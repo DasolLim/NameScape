@@ -100,7 +100,7 @@ async def test_for_user_lists_newest_first(db: AsyncSession) -> None:
         place = await build_place(db, name=name, geonames_id=900_000 + index)
         await discoveries.claim(db, place.id, discoveries.UserClaimant(user.id), CAPTION)
 
-    found = await discoveries.for_user(db, user.id)
+    found = await discoveries.for_user(db, discoveries.UserClaimant(user.id))
 
     assert [entry.place_name for entry in found] == ["Dull", "Boring", "Dildo"]
 

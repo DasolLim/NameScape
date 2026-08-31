@@ -168,5 +168,10 @@ async def test_a_signed_in_user_can_list_their_own_finds(
     assert [d["place_name"] for d in response.json()["discoveries"]] == ["Dildo"]
 
 
-async def test_listing_finds_requires_an_account(client: AsyncClient) -> None:
-    assert (await client.get("/api/discoveries")).status_code == 401
+async def test_listing_finds_never_needs_an_account(client: AsyncClient) -> None:
+    """Superseded Addendum A: a guest holds claims too, so this reads back
+    whatever the caller has. Nothing, truthfully, when they have nothing."""
+    response = await client.get("/api/discoveries")
+
+    assert response.status_code == 200
+    assert response.json()["discoveries"] == []

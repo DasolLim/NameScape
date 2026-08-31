@@ -181,7 +181,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read My Discoveries */
+        /**
+         * Read My Discoveries
+         * @description Whatever the caller has claimed, account or not.
+         *
+         *     A guest has to be able to read their own claim: it is the only way the
+         *     deadline survives a reload, and the only way the interface can explain the
+         *     claim control instead of offering a second one. Not a 401 either way -
+         *     a visitor who has claimed nothing has claimed nothing.
+         */
         get: operations["read_my_discoveries_api_discoveries_get"];
         put?: never;
         /**
@@ -577,6 +585,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Expires At */
+            expires_at?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -1035,6 +1045,7 @@ export interface operations {
             path?: never;
             cookie?: {
                 toponomicon_session?: string | null;
+                toponomicon_guest?: string | null;
             };
         };
         requestBody?: never;
@@ -1046,15 +1057,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserDiscoveriesResponse"];
-                };
-            };
-            /** @description Not signed in */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Validation Error */

@@ -102,6 +102,8 @@ class UserDiscovery:
     country_code: str | None
     caption: str
     created_at: datetime
+    #: Set only on a guest claim: when this place is released again.
+    expires_at: datetime | None = None
 
 
 _PINS_SQL: Final = """
@@ -118,11 +120,15 @@ _PINS_SQL: Final = """
     LIMIT :limit
 """
 
-_FOR_USER_SQL: Final = """
-    SELECT d.id, p.id AS place_id, p.name, p.country_code, d.caption, d.created_at
+#: Keyed on whichever column the claimant owns. A guest reading their own
+#: claim is how the deadline survives a page reload, and how the interface
+#: knows to explain the claim control rather than offer it again.
+_FOR_CLAIMANT_SQL: Final = """
+    SELECT d.id, p.id AS place_id, p.name, p.country_code, d.caption,
+           d.created_at, d.expires_at
     FROM discoveries d
     JOIN places p ON p.id = d.place_id
-    WHERE d.user_id = :user_id
+    WHERE d.{column} = :claimant_id
     ORDER BY d.created_at DESC, d.id DESC
 """
 
@@ -236,9 +242,14 @@ async def list_in_bounds(session: AsyncSession, bbox: BBox, zoom: int) -> list[D
     ]
 
 
-async def for_user(session: AsyncSession, user_id: UUID) -> list[UserDiscovery]:
-    """A user's discoveries, newest first."""
-    rows = (await session.execute(sql(_FOR_USER_SQL), {"user_id": user_id})).all()
+async def for_user(session: AsyncSession, claimant: Claimant) -> list[UserDiscovery]:
+    """A claimant's discoveries, newest first. Empty for a claimant with none."""
+    column = "user_id" if isinstance(claimant, UserClaimant) else "guest_session_id"
+    rows = (
+        await session.execute(
+            sql(_FOR_CLAIMANT_SQL.format(column=column)), {"claimant_id": claimant.id}
+        )
+    ).all()
 
     return [
         UserDiscovery(
@@ -248,6 +259,7 @@ async def for_user(session: AsyncSession, user_id: UUID) -> list[UserDiscovery]:
             country_code=row[3],
             caption=row[4],
             created_at=row[5],
+            expires_at=row[6],
         )
         for row in rows
     ]

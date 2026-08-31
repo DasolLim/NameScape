@@ -170,6 +170,37 @@ async def test_a_guest_pin_still_draws_on_the_globe(db: AsyncSession) -> None:
     assert pins[0].finder == service.GUEST_FINDER
 
 
+async def test_a_guest_can_read_back_their_own_claim(db: AsyncSession) -> None:
+    """Without this the countdown cannot survive a page reload."""
+    place = await build_place(db)
+    guest = await build_guest_session(db)
+    await discoveries.claim(db, place.id, discoveries.GuestClaimant(guest.id), CAPTION)
+
+    mine = await discoveries.for_user(db, discoveries.GuestClaimant(guest.id))
+
+    assert [found.place_name for found in mine] == [place.name]
+    assert mine[0].expires_at is not None
+
+
+async def test_one_guest_cannot_read_another_guests_claim(db: AsyncSession) -> None:
+    place = await build_place(db)
+    mine = await build_guest_session(db)
+    theirs = await build_guest_session(db)
+    await discoveries.claim(db, place.id, discoveries.GuestClaimant(mine.id), CAPTION)
+
+    assert await discoveries.for_user(db, discoveries.GuestClaimant(theirs.id)) == []
+
+
+async def test_a_user_claim_reads_back_with_no_deadline(db: AsyncSession) -> None:
+    place = await build_place(db)
+    user = await build_user(db, username="firstfinder")
+    await discoveries.claim(db, place.id, discoveries.UserClaimant(user.id), CAPTION)
+
+    mine = await discoveries.for_user(db, discoveries.UserClaimant(user.id))
+
+    assert mine[0].expires_at is None
+
+
 async def test_a_guest_and_a_user_racing_for_one_place_leave_a_single_claim(
     test_database: str,
 ) -> None:
