@@ -155,6 +155,28 @@ async def test_each_scheduled_job_is_reachable_with_the_secret(
     assert "changed" in response.json()
 
 
+@pytest.mark.parametrize("job", ["resolve-due", "release-expired", "puzzle-rollover"])
+async def test_a_scheduler_that_can_only_send_get_is_still_able_to_run_a_job(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch, job: str
+) -> None:
+    """Vercel cron invokes with GET, not POST, and does not follow redirects.
+    A POST-only endpoint would have deployed cleanly and never run once."""
+    monkeypatch.setattr(settings, "cron_secret", "expected")
+
+    response = await client.get(f"/api/cron/{job}", headers={"Authorization": "Bearer expected"})
+
+    assert response.status_code == 200
+    assert "changed" in response.json()
+
+
+async def test_a_get_without_the_secret_is_still_refused(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "cron_secret", "expected")
+
+    assert (await client.get("/api/cron/resolve-due")).status_code == 401
+
+
 async def test_a_cron_run_uses_the_callers_session_not_the_global_engine(
     client: AsyncClient, db: AsyncSession, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -862,15 +862,20 @@ _CRON_JOBS: Final = {
 }
 
 
-@app.post("/api/cron/{job}", responses=_errors(401, 404))
+@app.api_route("/api/cron/{job}", methods=["GET", "POST"], responses=_errors(401, 404))
 async def run_scheduled_job(
     job: str, request: Request, session: SessionDep, redis: RedisDep
 ) -> CronResult:
     """Run one scheduled job. For platforms with no long-running process.
 
+    GET as well as POST, because Vercel's scheduler invokes with GET and does
+    not follow redirects: a POST-only endpoint would deploy cleanly and never
+    run once.
+
     Also the way to force a job by hand, which is what makes a plan with
     once-a-day cron usable: a contest can be resolved on demand rather than
-    waited for.
+    waited for. Cron delivery is best effort and may miss a run or repeat one,
+    which is safe here: each job takes a Redis lock and each is idempotent.
 
     Fails closed on an unset secret. These endpoints resolve contests and
     release claims, so an open one would be a way to force either at will.

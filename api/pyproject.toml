@@ -2,7 +2,8 @@
 name = "toponomicon-api"
 version = "0.1.0"
 description = "Toponomicon API"
-requires-python = ">=3.12,<3.13"
+# Upper bound removed: Vercel's Python runtime is 3.13/3.14.
+requires-python = ">=3.12"
 dependencies = [
     "fastapi",
     "uvicorn[standard]",

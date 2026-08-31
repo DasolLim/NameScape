@@ -1,0 +1,37 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd web && npm ci && npm run build",
+  "outputDirectory": "web/dist",
+  "installCommand": "echo 'dependencies are installed per-workspace'",
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "api/**",
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/resolve-due",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/release-expired",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/puzzle-rollover",
+      "schedule": "0 0 * * *"
+    }
+  ],
+  "framework": null
+}
