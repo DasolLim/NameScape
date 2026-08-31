@@ -1,13 +1,18 @@
 """A language model behind one narrow interface.
 
 Deliberately small: one call that asks for JSON and returns None on anything
-that is not usable. Two callers need it, both offline, and neither should learn
-anything about the provider.
+that is not usable. Every caller goes through the same provider, so one key
+covers the lot.
 
-**No request path may call this.** Etymology is resolved once and cached
-forever; puzzle clues are generated ninety days ahead and approved by a person.
-A model call while a user waits would be slow, nondeterministic, and capable of
-failing for everyone at once.
+**Two of the three callers are offline, and must stay that way.** Etymology is
+resolved once and cached forever; puzzle clues are drafted ninety days ahead
+and approved by a person. A model call in either of those paths while a user
+waits would be slow, nondeterministic, and able to fail for everyone at once.
+
+Moderation is the exception, and always was: screening text somebody just typed
+cannot be done in advance. It therefore builds its own client with a short
+timeout, and treats a None reply as a failure rather than as an absence of
+findings. See modules/moderation/classifier.py.
 """
 
 import json
@@ -20,8 +25,9 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-#: Generous: this is batch work, and a retry costs more than a slow answer.
-_TIMEOUT: Final = 60.0
+#: Generous, for batch work: a retry costs more than a slow answer. Callers in
+#: a request path pass their own, much shorter.
+BATCH_TIMEOUT_SECONDS: Final = 60.0
 _ENDPOINT: Final = "https://openrouter.ai/api/v1/chat/completions"
 
 
@@ -46,9 +52,12 @@ class OpenRouterClient:
     quality is the only thing that matters.
     """
 
-    def __init__(self, api_key: str, model: str) -> None:
+    def __init__(
+        self, api_key: str, model: str, timeout_seconds: float = BATCH_TIMEOUT_SECONDS
+    ) -> None:
         self._api_key = api_key
         self._model = model
+        self._timeout = timeout_seconds
 
     @property
     def model(self) -> str:
@@ -61,7 +70,7 @@ class OpenRouterClient:
         messages.append({"role": "user", "content": prompt})
 
         try:
-            async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
                 response = await client.post(
                     _ENDPOINT,
                     headers={"Authorization": f"Bearer {self._api_key}"},
@@ -84,12 +93,17 @@ class OpenRouterClient:
             return None
 
 
-def build_client() -> LLMClient | None:
+def build_client(
+    model: str | None = None, timeout_seconds: float = BATCH_TIMEOUT_SECONDS
+) -> LLMClient | None:
     """A client, or None when no key is configured.
 
-    None is a supported state, not a failure: every caller has to work without
-    a model, because the tiers above it are the citable ones.
+    For the offline callers None is a supported state rather than a failure:
+    the etymology tiers above the model are the citable ones. Moderation reads
+    None as a refusal instead, because unscreened text must not pass.
     """
     if not settings.openrouter_api_key:
         return None
-    return OpenRouterClient(settings.openrouter_api_key, settings.openrouter_model)
+    return OpenRouterClient(
+        settings.openrouter_api_key, model or settings.openrouter_model, timeout_seconds
+    )

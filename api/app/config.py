@@ -13,7 +13,6 @@ class Settings(BaseSettings):
     photon_url: str = ""
     wikidata_url: str = "https://www.wikidata.org"
     secret_key: str = "dev-only-change-me"
-    anthropic_api_key: str = ""
     blocklist_path: str = "data/blocklist.txt"
     #: DEVELOPMENT ONLY. Skips the Claude classifier so a machine with no API
     #: key can still submit. Must never be true in production: it turns the
@@ -31,8 +30,13 @@ class Settings(BaseSettings):
     #: state - the tiers above it are the citable ones.
     openrouter_api_key: str = ""
     #: Confirm the slug against OpenRouter's model list before relying on it.
-    #: Quality matters more than cost here: a few hundred calls a year.
-    openrouter_model: str = "anthropic/claude-opus-5"
+    #: Quality matters more than cost for the offline work: a few hundred calls
+    #: a year, so the difference between a strong and a cheap model is pennies.
+    openrouter_model: str = "openai/gpt-5-mini"
+    #: Moderation runs on every caption, nickname and correction, in the
+    #: request path, so it wants something fast. Not the cheapest available:
+    #: this decides whether real people's text is refused.
+    moderation_model: str = "openai/gpt-5-mini"
 
     #: Claims allowed per address per day without an account. Low on purpose:
     #: a guest claim locks a place for a week and costs nothing to make.

@@ -1,16 +1,27 @@
-"""The Claude Haiku classifier and its circuit breaker. Internal."""
+"""The moderation classifier and its circuit breaker. Internal.
+
+Runs on every caption, nickname and etymology correction, which makes it the
+one model call in a request path. Two consequences: it gets a short timeout of
+its own rather than the batch client's sixty seconds, and it **fails closed** -
+a timeout, a transport error, a missing key or a reply of the wrong shape all
+raise, so the caller refuses the text rather than waving it through.
+
+Reads None as a refusal, which is the opposite of what the offline callers do
+with it. There, no model means fall back to a citable source; here, no model
+means nothing screened the text.
+"""
 
 import logging
-from typing import Final
+from typing import Any, Final
 
-import anthropic
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
+from app import llm
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-MODEL: Final = "claude-haiku-4-5"
+#: Short, because somebody is waiting on a button press.
 TIMEOUT_SECONDS: Final = 5.0
 FAILURE_THRESHOLD: Final = 5
 
@@ -26,7 +37,13 @@ Return true for a category only when the text clearly matches it:
 - spam: advertising, links, or unrelated promotion.
 
 Absurdity, rudeness and toilet humour about a place are not, by themselves,
-any of these categories."""
+any of these categories.
+
+Return only JSON, with those five keys and boolean values."""
+
+
+class ClassifierUnavailableError(RuntimeError):
+    """Nothing screened the text. The caller must refuse it."""
 
 
 class Categories(BaseModel):
@@ -73,21 +90,30 @@ class CircuitBreaker:
 breaker = CircuitBreaker(FAILURE_THRESHOLD)
 
 
+def _client() -> llm.LLMClient | None:
+    return llm.build_client(settings.moderation_model, TIMEOUT_SECONDS)
+
+
+def _verdict_from(reply: Any) -> Categories:
+    """Parse a reply, or raise. An unreadable answer is not an absence of findings."""
+    if not isinstance(reply, dict):
+        raise ClassifierUnavailableError("classifier returned no usable verdict")
+    try:
+        # Unknown keys are ignored by the model: a volunteered extra category is
+        # not a reason to refuse somebody's caption.
+        return Categories.model_validate(reply)
+    except ValidationError as malformed:
+        raise ClassifierUnavailableError("classifier returned the wrong shape") from malformed
+
+
 async def classify(text: str) -> Categories:
-    """Ask Haiku. Raises on timeout or transport failure; the caller fails closed."""
+    """Screen one piece of text. Raises rather than guessing; caller fails closed."""
     if settings.moderation_dev_bypass:
         logger.warning("MODERATION CLASSIFIER BYPASSED - development only, never production")
         return Categories()
 
-    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
-    response = await client.with_options(timeout=TIMEOUT_SECONDS).messages.parse(
-        model=MODEL,
-        max_tokens=256,
-        system=_SYSTEM,
-        messages=[{"role": "user", "content": text}],
-        output_format=Categories,
-    )
-    parsed = response.parsed_output
-    if parsed is None:
-        raise RuntimeError("classifier returned no structured output")
-    return parsed
+    client = _client()
+    if client is None:
+        raise ClassifierUnavailableError("no model configured to screen text")
+
+    return _verdict_from(await client.complete_json(text, system=_SYSTEM))
