@@ -1,21 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import GlobeCanvas from './GlobeCanvas'
-import Starfield from './Starfield'
-import { fetchHealth, healthSummary, type Health } from './api/health'
+import { fetchHealth, type Health } from './api/health'
+import { fetchPlace, type PlaceDetail } from './api/places'
 import type { SearchResult } from './api/search'
 import { fetchViewport, toLayerState } from './api/viewport'
-import type { GlobeHandle, PlaceRef } from './globe'
-import { fetchPlace, type PlaceDetail } from './api/places'
 import { completeSignInFromUrl } from './auth/completeSignIn'
 import SignInSheet from './auth/SignInSheet'
+import { useAuth } from './auth/store'
 import BookmarkList from './bookmarks/BookmarkList'
 import BookmarkStar from './bookmarks/BookmarkStar'
+import type { Layers } from './chrome/LayersMenu'
+import TopBar from './chrome/TopBar'
 import ClaimSheet from './claim/ClaimSheet'
 import ContestBoard from './contests/ContestBoard'
+import GlobeCanvas from './GlobeCanvas'
+import type { GlobeHandle, PlaceRef } from './globe'
 import Passport from './passport/Passport'
-import { useAuth } from './auth/store'
-import SearchOverlay from './search/SearchOverlay'
+import Starfield from './Starfield'
 
 function toPlaceRef(place: SearchResult): PlaceRef {
   const featureClass = place.feature_class
@@ -32,26 +33,29 @@ function toPlaceRef(place: SearchResult): PlaceRef {
 
 export default function App() {
   const [health, setHealth] = useState<Health | null>(null)
-  const globe = useRef<GlobeHandle | null>(null)
-
   const [place, setPlace] = useState<PlaceDetail | null>(null)
-  const [showBookmarks, setShowBookmarks] = useState(true)
-  const [showNicknames, setShowNicknames] = useState(true)
-  const [passportOpen, setPassportOpen] = useState(false)
   const [bookmarksOpen, setBookmarksOpen] = useState(false)
-  const toggles = useRef({ bookmarks: true, nicknames: true })
+  const [passportOpen, setPassportOpen] = useState(false)
+  const [layers, setLayers] = useState<Layers>({
+    discoveries: true,
+    bookmarks: true,
+    nicknames: true,
+  })
+
+  const globe = useRef<GlobeHandle | null>(null)
+  const visible = useRef(layers)
+
   const user = useAuth((state) => state.user)
-  const requireAuth = useAuth((state) => state.requireAuth)
   const loadAuth = useAuth((state) => state.load)
-  const openSignIn = useAuth((state) => state.openSignIn)
+  const requireAuth = useAuth((state) => state.requireAuth)
 
   useEffect(() => {
-    fetchHealth()
-      .then(setHealth)
-      .catch(() => setHealth(null))
     // An emailed link lands here with ?token=; exchange it before asking who
     // the visitor is, so a fresh sign-in is not reported as anonymous.
     void completeSignInFromUrl().then(() => loadAuth())
+    fetchHealth()
+      .then(setHealth)
+      .catch(() => setHealth(null))
   }, [loadAuth])
 
   const onReady = useCallback((handle: GlobeHandle) => {
@@ -64,121 +68,104 @@ export default function App() {
       clearTimeout(pending)
       pending = setTimeout(() => {
         void fetchViewport(bounds)
-          .then((data) => handle.setLayers(toLayerState(data, toggles.current)))
+          .then((data) => handle.setLayers(toLayerState(data, visible.current)))
           .catch(() => undefined)
       }, 300)
     })
   }, [])
 
-  const onSelect = useCallback(
+  const onSelectPlace = useCallback(
     (result: SearchResult) => {
       void globe.current?.focusOn(toPlaceRef(result))
       // Reading is never gated; claiming is.
       requireAuth(() => {
-        void fetchPlace(result.id).then(setPlace).catch(() => setPlace(null))
+        void fetchPlace(result.id)
+          .then(setPlace)
+          .catch(() => setPlace(null))
       })
     },
     [requireAuth],
   )
 
-  return (
-    <main className="relative h-full w-full overflow-hidden bg-[#05070C] text-[#F5F1E8]">
-      <Starfield />
-      <GlobeCanvas onReady={onReady} />
+  const onLayersChange = useCallback((next: Layers) => {
+    setLayers(next)
+    visible.current = next
+    globe.current?.setLayers({
+      discoveries: { visible: next.discoveries, features: [] },
+      bookmarks: { visible: next.bookmarks, features: [] },
+      nicknames: { visible: next.nicknames, features: [] },
+    })
+  }, [])
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-4 p-6">
-        <div className="text-center">
-          <h1 className="text-3xl">Toponomicon</h1>
-          <p data-testid="health" className="mt-1 text-sm text-[#9B9484]">
-            {health ? healthSummary(health) : 'checking\u2026'}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <SearchOverlay onSelect={onSelect} />
-          <button
-            type="button"
-            aria-expanded={bookmarksOpen}
-            onClick={() =>
-              // Bookmarks belong to an account, so ask for one rather than
-              // opening an empty panel.
-              requireAuth(() => setBookmarksOpen((open) => !open))
-            }
-            className="pointer-events-auto rounded-full px-4 py-3 text-sm text-[#9B9484] hover:text-[#F5F1E8]"
-          >
-            Bookmarks
-          </button>
-          <button
-            type="button"
-            aria-pressed={showNicknames}
-            onClick={() => {
-              const next = !showNicknames
-              setShowNicknames(next)
-              toggles.current = { ...toggles.current, nicknames: next }
-              globe.current?.setLayers({ nicknames: { visible: next, features: [] } })
-            }}
-            className={`pointer-events-auto rounded-full px-4 py-3 text-sm ${
-              showNicknames ? 'text-[#E8A33D]' : 'text-[#6B665C]'
-            }`}
-          >
-            Nicknames
-          </button>
-          {user ? (
-            <button
-              type="button"
-              onClick={() => setPassportOpen(true)}
-              className="pointer-events-auto rounded-full px-4 py-3 text-sm text-[#9B9484] hover:text-[#F5F1E8]"
-            >
-              @{user.username}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={openSignIn}
-              className="pointer-events-auto rounded-full px-4 py-3 text-sm text-[#9B9484] hover:text-[#F5F1E8]"
-            >
-              Sign in
-            </button>
+  return (
+    <div className="flex h-full w-full flex-col overflow-hidden bg-ink-950 text-parchment-50">
+      <TopBar
+        layers={layers}
+        onLayersChange={onLayersChange}
+        onSelectPlace={onSelectPlace}
+        onOpenBookmarks={() => requireAuth(() => setBookmarksOpen((open) => !open))}
+        onOpenPassport={() => setPassportOpen(true)}
+      />
+
+      {/* The globe owns everything below the chrome. Surfaces float over it;
+          it never unmounts. */}
+      <main className="relative flex-1 overflow-hidden">
+        <Starfield />
+        <GlobeCanvas onReady={onReady} />
+
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center gap-3 overflow-y-auto p-4">
+          <SignInSheet />
+
+          {bookmarksOpen && user && (
+            <div className="pointer-events-auto">
+              <BookmarkList
+                onClose={() => setBookmarksOpen(false)}
+                showOnGlobe={layers.bookmarks}
+                onToggleGlobe={(bookmarks) => onLayersChange({ ...layers, bookmarks })}
+                onSelect={(saved) => {
+                  void globe.current?.focusOn({
+                    id: String(saved.place_id),
+                    lon: saved.lon,
+                    lat: saved.lat,
+                    featureClass: 'P',
+                  })
+                }}
+              />
+            </div>
+          )}
+
+          {passportOpen && user && (
+            <div className="pointer-events-auto">
+              <Passport username={user.username} onClose={() => setPassportOpen(false)} />
+            </div>
+          )}
+
+          {place && (
+            <div className="pointer-events-auto w-[min(26rem,92vw)] text-left">
+              <div className="mb-2 flex items-center justify-end">
+                <BookmarkStar
+                  key={place.id}
+                  placeId={place.id}
+                  saved={place.bookmarked}
+                />
+              </div>
+              <ClaimSheet place={place} onClaimed={() => undefined} />
+              <div className="mt-3">
+                <ContestBoard placeId={place.id} />
+              </div>
+            </div>
           )}
         </div>
-        <SignInSheet />
-        {bookmarksOpen && user && (
-          <div className="pointer-events-auto">
-            <BookmarkList
-              onClose={() => setBookmarksOpen(false)}
-              showOnGlobe={showBookmarks}
-              onToggleGlobe={(visible) => {
-                setShowBookmarks(visible)
-                toggles.current = { ...toggles.current, bookmarks: visible }
-                globe.current?.setLayers({ bookmarks: { visible, features: [] } })
-              }}
-              onSelect={(place) => {
-                void globe.current?.focusOn({
-                  id: String(place.place_id),
-                  lon: place.lon,
-                  lat: place.lat,
-                  featureClass: 'P',
-                })
-              }}
-            />
-          </div>
-        )}
-        {passportOpen && user && (
-          <div className="pointer-events-auto">
-            <Passport username={user.username} onClose={() => setPassportOpen(false)} />
-          </div>
-        )}
-        {place && (
-          <div className="pointer-events-auto w-[min(26rem,90vw)] text-left">
-            <div className="mb-2 flex items-center justify-end">
-              <BookmarkStar key={place.id} placeId={place.id} saved={place.bookmarked} />
-            </div>
-            <ClaimSheet place={place} onClaimed={() => undefined} />
-            <div className="mt-3">
-              <ContestBoard placeId={place.id} />
-            </div>
-          </div>
-        )}
-      </div>
-    </main>
+
+        {/* Kept, but out of the wordmark's way: this is operator information,
+            not part of the product's identity. */}
+        <p
+          data-testid="health"
+          className="pointer-events-none absolute bottom-2 left-3 text-[11px] text-parchment-600"
+        >
+          {health ? (health.db && health.redis ? '' : 'service degraded') : ''}
+        </p>
+      </main>
+    </div>
   )
 }
