@@ -7,6 +7,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+asyncpg://toponomicon:toponomicon@localhost:55432/toponomicon"
+    #: Where migrations run. Alembic needs prepared statements, which a
+    #: transaction pooler does not have, so it targets a direct or session
+    #: connection. Defaults to the runtime URL, which is right everywhere that
+    #: is not pooled.
+    database_url_direct: str = ""
     redis_url: str = "redis://localhost:56379/0"
     typesense_url: str = ""
     typesense_api_key: str = ""
@@ -22,6 +27,15 @@ class Settings(BaseSettings):
     #: Writes allowed per address per minute. Raised for contract fuzzing,
     #: where the limiter would otherwise answer before request validation.
     writes_per_minute: int = 30
+    #: Whether this process runs the scheduled jobs in-process. Off by
+    #: default, because on serverless every function instance would start its
+    #: own scheduler: there the jobs are driven by cron over HTTP instead. A
+    #: long-running deployment, and `make dev`, turn it on.
+    run_scheduler: bool = False
+    #: Authorises the cron endpoints. They resolve contests and release claims,
+    #: so an unset secret refuses everything rather than opening them.
+    cron_secret: str = ""
+
     #: Only enable behind a proxy you control: a client can otherwise forge
     #: X-Forwarded-For and get a fresh allowance per request.
     trust_forwarded_for: bool = False

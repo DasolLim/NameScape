@@ -1,5 +1,9 @@
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import date, datetime
+from hmac import compare_digest
 from typing import Annotated, Any, Final, Literal
 
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Path, Query, Request, Response
@@ -10,7 +14,7 @@ from redis.exceptions import RedisError
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import languages, observability, ratelimit
+from app import languages, observability, ratelimit, scheduler
 from app.cache import build_client, get_redis
 from app.config import settings
 from app.db import engine, get_session
@@ -22,7 +26,31 @@ from app.modules.gazetteer import corrections
 from app.modules.puzzles import play
 from app.text import StripNulMiddleware, strip_nul
 
-app = FastAPI(title="Toponomicon API")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Start the scheduled jobs, where this process is the sort that can.
+
+    A long-running server runs them in-process. Serverless does not: every
+    function instance would start its own scheduler, so there the same jobs are
+    invoked by cron over HTTP. See scheduler.should_run.
+    """
+    running = None
+    if scheduler.should_run():
+        running = scheduler.build_scheduler()
+        running.start()
+        logger.info("scheduler started: %s", [job.id for job in running.get_jobs()])
+    try:
+        yield
+    finally:
+        if running is not None:
+            running.shutdown(wait=False)
+
+
+app = FastAPI(title="Toponomicon API", lifespan=lifespan)
+
+
+logger = logging.getLogger(__name__)
 
 
 # Middleware cannot use FastAPI dependencies, so the client lives on app.state
@@ -818,6 +846,44 @@ async def read_puzzle_archive(
             for row in rows
         ]
     )
+
+
+class CronResult(BaseModel):
+    job: str
+    changed: int
+
+
+#: The scheduled work, by name. Each already takes its own Redis lock, so an
+#: overlapping invocation is safe whether it came from a timer or from cron.
+_CRON_JOBS: Final = {
+    "resolve-due": scheduler.resolve_due_once,
+    "release-expired": scheduler.release_expired_once,
+    "puzzle-rollover": scheduler.roll_over_once,
+}
+
+
+@app.post("/api/cron/{job}", responses=_errors(401, 404))
+async def run_scheduled_job(
+    job: str, request: Request, session: SessionDep, redis: RedisDep
+) -> CronResult:
+    """Run one scheduled job. For platforms with no long-running process.
+
+    Also the way to force a job by hand, which is what makes a plan with
+    once-a-day cron usable: a contest can be resolved on demand rather than
+    waited for.
+
+    Fails closed on an unset secret. These endpoints resolve contests and
+    release claims, so an open one would be a way to force either at will.
+    """
+    supplied = (request.headers.get("Authorization") or "").removeprefix("Bearer ").strip()
+    if not settings.cron_secret or not compare_digest(supplied, settings.cron_secret):
+        raise HTTPException(status_code=401, detail="Not authorised")
+
+    runner = _CRON_JOBS.get(job)
+    if runner is None:
+        raise HTTPException(status_code=404, detail="No such job")
+
+    return CronResult(job=job, changed=await runner(redis, session))
 
 
 class ViewportFeature(BaseModel):

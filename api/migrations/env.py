@@ -5,11 +5,10 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app import models  # noqa: F401  registers models on Base.metadata
-from app.config import settings
-from app.db import Base
+from app.db import Base, migration_url
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+config.set_main_option("sqlalchemy.url", migration_url())
 target_metadata = Base.metadata
 
 

@@ -26,6 +26,7 @@ dev: up  ## Run the API and web dev servers
 	  ( cd $(API) && MODERATION_DEV_BYPASS=$${MODERATION_DEV_BYPASS:-true} \
 	      SMTP_HOST=$${SMTP_HOST:-localhost} SMTP_PORT=$${SMTP_PORT:-1025} \
 	      SMTP_START_TLS=$${SMTP_START_TLS:-false} \
+	      RUN_SCHEDULER=$${RUN_SCHEDULER:-true} \
 	      uv run uvicorn app.main:app --reload --port 8000 ) & \
 	  ( cd $(WEB) && VITE_DEV_MAIL_INBOX=$${VITE_DEV_MAIL_INBOX:-http://localhost:8025} \
 	      npm run dev ) & \
@@ -63,6 +64,18 @@ seed: migrate  ## Download and import real GeoNames data
 
 seed-demo: seed  ## Add demo discoveries so the dev globe has pins
 	@cd $(API) && uv run python scripts/seed_demo.py
+
+migrate-remote:  ## Apply migrations to the deployment database (Supabase)
+	@# Runs against DATABASE_URL_DIRECT, because Alembic needs prepared
+	@# statements and Supabase's transaction pooler has none. Reads api/.env.
+	@cd $(API) && SUPABASE_URL=$$(grep -E "^SUPABASE_DB_URL_DIRECT=" .env | cut -d= -f2-) ; \
+	  SESSION_URL=$$(grep -E "^SUPABASE_DB_URL_SESSION=" .env | cut -d= -f2-) ; \
+	  cd $(CURDIR)/$(API) && \
+	  DATABASE_URL="$$SUPABASE_URL" DATABASE_URL_DIRECT="$$SUPABASE_URL" \
+	    uv run alembic upgrade head \
+	  || ( echo "direct connection failed (IPv6?), retrying via the session pooler" ; \
+	       DATABASE_URL="$$SESSION_URL" DATABASE_URL_DIRECT="$$SESSION_URL" \
+	         uv run alembic upgrade head )
 
 migrate: up  ## Apply alembic migrations
 	@cd $(API) && uv run alembic upgrade head
