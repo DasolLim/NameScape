@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchHealth, type Health } from './api/health'
 import { fetchPlace, type PlaceDetail } from './api/places'
 import type { SearchResult } from './api/search'
+import { fetchMyDiscoveries } from './api/passport'
 import { fetchViewport, toLayerState } from './api/viewport'
 import { completeSignInFromUrl } from './auth/completeSignIn'
 import SignInSheet from './auth/SignInSheet'
@@ -11,7 +12,7 @@ import BookmarkList from './bookmarks/BookmarkList'
 import BookmarkStar from './bookmarks/BookmarkStar'
 import type { Layers } from './chrome/LayersMenu'
 import TopBar from './chrome/TopBar'
-import ClaimSheet from './claim/ClaimSheet'
+import ClaimSheet, { type HeldClaim } from './claim/ClaimSheet'
 import ContestBoard from './contests/ContestBoard'
 import GlobeCanvas from './GlobeCanvas'
 import type { GlobeHandle, PlaceRef } from './globe'
@@ -35,6 +36,9 @@ export default function App() {
   const [health, setHealth] = useState<Health | null>(null)
   const [place, setPlace] = useState<PlaceDetail | null>(null)
   const [bookmarksOpen, setBookmarksOpen] = useState(false)
+  //: What this visitor already holds. A guest gets one claim, so this is what
+  //: tells the sheet to explain itself rather than offer a second.
+  const [held, setHeld] = useState<HeldClaim | null>(null)
   const [passportOpen, setPassportOpen] = useState(false)
   const [layers, setLayers] = useState<Layers>({
     discoveries: true,
@@ -58,6 +62,17 @@ export default function App() {
       .catch(() => setHealth(null))
   }, [loadAuth])
 
+  const loadHeld = useCallback(async () => {
+    const found = await fetchMyDiscoveries().catch(() => [])
+    // Only a live guest claim constrains anything: an account may hold many.
+    const guest = found.find((item) => item.expires_at)
+    setHeld(guest ? { placeName: guest.place_name, expiresAt: guest.expires_at ?? null } : null)
+  }, [])
+
+  useEffect(() => {
+    void loadHeld()
+  }, [loadHeld, user])
+
   const onReady = useCallback((handle: GlobeHandle) => {
     globe.current = handle
 
@@ -74,18 +89,14 @@ export default function App() {
     })
   }, [])
 
-  const onSelectPlace = useCallback(
-    (result: SearchResult) => {
-      void globe.current?.focusOn(toPlaceRef(result))
-      // Reading is never gated; claiming is.
-      requireAuth(() => {
-        void fetchPlace(result.id)
-          .then(setPlace)
-          .catch(() => setPlace(null))
-      })
-    },
-    [requireAuth],
-  )
+  const onSelectPlace = useCallback((result: SearchResult) => {
+    void globe.current?.focusOn(toPlaceRef(result))
+    // Open for everyone. Reading was never meant to be gated, and claiming
+    // no longer is either: a guest gets one claim, with a deadline.
+    void fetchPlace(result.id)
+      .then(setPlace)
+      .catch(() => setPlace(null))
+  }, [])
 
   const onLayersChange = useCallback((next: Layers) => {
     setLayers(next)
@@ -149,7 +160,11 @@ export default function App() {
                   saved={place.bookmarked}
                 />
               </div>
-              <ClaimSheet place={place} onClaimed={() => undefined} />
+              <ClaimSheet
+                place={place}
+                heldClaim={held}
+                onClaimed={() => void loadHeld()}
+              />
               <div className="mt-3">
                 <ContestBoard placeId={place.id} />
               </div>

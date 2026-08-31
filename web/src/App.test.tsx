@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, expect, test, vi } from 'vitest'
 
@@ -62,4 +63,56 @@ test('the chrome sits above the globe rather than floating on it', async () => {
   // separation the old overlay lacked.
   expect(bar.contains(globe)).toBe(false)
   expect(bar.className).toMatch(/bg-ink-950/)
+})
+
+
+test('a signed-out visitor reaches the claim form, not a sign-in wall', async () => {
+  const user = userEvent.setup()
+  server.use(
+    http.get('/api/search', () =>
+      HttpResponse.json({
+        results: [
+          {
+            id: 1,
+            geonames_id: 6942553,
+            name: 'Dildo',
+            feature_class: 'P',
+            country_code: 'CA',
+            admin1: 'Newfoundland and Labrador',
+            lat: 47.5766,
+            lon: -53.5442,
+            claimed_by: null,
+          },
+        ],
+      }),
+    ),
+    http.get('/api/places/1', () =>
+      HttpResponse.json({
+        id: 1,
+        geonames_id: 6942553,
+        name: 'Dildo',
+        feature_class: 'P',
+        feature_code: 'PPL',
+        country_code: 'CA',
+        tier: 3,
+        lat: 47.5766,
+        lon: -53.5442,
+        etymology: null,
+        claimed_by: null,
+        bookmarked: false,
+        eligibility: 'allowed',
+        eligibility_reason: null,
+      }),
+    ),
+  )
+  render(<App />)
+
+  await user.click(await screen.findByRole('button', { name: /search places/i }))
+  await user.type(screen.getByRole('combobox'), 'Dildo')
+  await user.click(await screen.findByRole('option', { name: /Dildo/ }))
+
+  // Claiming without an account is the product now, so the sheet must open.
+  // Gating it behind sign-in also gated reading, which is never gated.
+  expect(await screen.findByLabelText(/caption/i)).toBeVisible()
+  expect(useAuth.getState().signInOpen).toBe(false)
 })
