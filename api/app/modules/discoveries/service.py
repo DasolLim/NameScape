@@ -5,10 +5,11 @@ race all live behind these three functions.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Final
 from uuid import UUID
 
+from sqlalchemy import func, select
 from sqlalchemy import text as sql
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +20,33 @@ from app.modules import eligibility, moderation
 #: The globe cannot draw more than this without dropping frames on mobile.
 MAX_FEATURES: Final = 500
 MAX_CAPTION_LENGTH: Final = 140
+
+#: How long a guest claim stands before the place is released. Long enough to
+#: come back to, short enough that the claim is visibly at stake.
+GUEST_CLAIM_TTL: Final = timedelta(days=7)
+
+#: What the globe calls a claim nobody has put a name to yet.
+GUEST_FINDER: Final = "a guest"
+
+#: Postgres unique_violation. Any other integrity error is a different bug.
+_UNIQUE_VIOLATION: Final = "23505"
+
+
+@dataclass(frozen=True, slots=True)
+class UserClaimant:
+    """A signed-in account. Its claim is permanent."""
+
+    id: UUID
+
+
+@dataclass(frozen=True, slots=True)
+class GuestClaimant:
+    """An unsigned visitor. One claim, and it expires."""
+
+    id: UUID
+
+
+Claimant = UserClaimant | GuestClaimant
 
 
 class AlreadyClaimedError(Exception):
@@ -31,6 +59,10 @@ class NotEligibleError(Exception):
     def __init__(self, reason: str | None) -> None:
         super().__init__(reason or "This place cannot be claimed.")
         self.reason = reason
+
+
+class GuestLimitReachedError(Exception):
+    """A guest session gets one claim. Signing up is what lifts the limit."""
 
 
 class CaptionRejectedError(Exception):
@@ -74,11 +106,11 @@ class UserDiscovery:
 
 
 _PINS_SQL: Final = """
-    SELECT d.id, p.id AS place_id, p.name, u.username,
+    SELECT d.id, p.id AS place_id, p.name, COALESCE(u.username, :guest_finder) AS finder,
            ST_X(p.centroid::geometry) AS lon, ST_Y(p.centroid::geometry) AS lat
     FROM discoveries d
     JOIN places p ON p.id = d.place_id
-    JOIN users u ON u.id = d.user_id
+    LEFT JOIN users u ON u.id = d.user_id
     WHERE ST_Intersects(
         p.centroid,
         ST_MakeEnvelope(:west, :south, :east, :north, 4326)::geography
@@ -99,17 +131,26 @@ _FOR_USER_SQL: Final = """
 async def claim(
     session: AsyncSession,
     place_id: int,
-    user_id: UUID,
+    claimant: Claimant,
     caption: str,
     etymology: str | None = None,
 ) -> Discovery:
-    """Claim a place. Order matters: eligibility, then moderation, then insert."""
+    """Claim a place. Order matters: eligibility, then moderation, then insert.
+
+    A guest claims on exactly the same terms as an account, bar two: they get
+    one claim, and it expires. Nothing else is relaxed for them.
+    """
     if not caption.strip():
         raise CaptionRejectedError
     if len(caption) > MAX_CAPTION_LENGTH:
         raise CaptionRejectedError
 
-    verdict = await eligibility.check(session, place_id, user_id)
+    if isinstance(claimant, GuestClaimant) and await _guest_has_claimed(session, claimant.id):
+        raise GuestLimitReachedError
+
+    verdict = await eligibility.check(
+        session, place_id, claimant.id if isinstance(claimant, UserClaimant) else None
+    )
     if verdict.status is eligibility.Eligibility.BLOCKED:
         raise NotEligibleError(verdict.reason)
     if verdict.status is eligibility.Eligibility.ETYMOLOGY_REQUIRED and not (
@@ -124,15 +165,42 @@ async def claim(
     if screened.verdict is not moderation.Verdict.ACCEPT:
         raise CaptionRejectedError
 
-    discovery = Discovery(place_id=place_id, user_id=user_id, caption=caption)
+    discovery = _row_for(claimant, place_id, caption)
     session.add(discovery)
     try:
         # The unique constraint on place_id is the real arbiter under a race.
         await session.flush()
     except IntegrityError as conflict:
+        # Only a unique violation means somebody committed first. A forged
+        # guest session or a place that vanished is a different fault and
+        # must not be reported to the user as a race they lost.
+        if getattr(conflict.orig, "sqlstate", None) != _UNIQUE_VIOLATION:
+            raise
         raise AlreadyClaimedError(place_id) from conflict
 
     return discovery
+
+
+async def _guest_has_claimed(session: AsyncSession, guest_session_id: UUID) -> bool:
+    held = await session.scalar(
+        select(func.count())
+        .select_from(Discovery)
+        .where(Discovery.guest_session_id == guest_session_id)
+    )
+    return bool(held)
+
+
+def _row_for(claimant: Claimant, place_id: int, caption: str) -> Discovery:
+    """The CHECK constraint accepts exactly one of these two shapes."""
+    if isinstance(claimant, GuestClaimant):
+        return Discovery(
+            place_id=place_id,
+            caption=caption,
+            claimant_type="guest",
+            guest_session_id=claimant.id,
+            expires_at=datetime.now(UTC) + GUEST_CLAIM_TTL,
+        )
+    return Discovery(place_id=place_id, caption=caption, claimant_type="user", user_id=claimant.id)
 
 
 async def list_in_bounds(session: AsyncSession, bbox: BBox, zoom: int) -> list[DiscoveryPin]:
@@ -146,6 +214,7 @@ async def list_in_bounds(session: AsyncSession, bbox: BBox, zoom: int) -> list[D
                 "east": bbox.east,
                 "north": bbox.north,
                 "limit": MAX_FEATURES,
+                "guest_finder": GUEST_FINDER,
             },
         )
     ).all()

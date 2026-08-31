@@ -5,9 +5,9 @@ from fakeredis.aioredis import FakeRedis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Bookmark, Discovery
-from app.modules import viewport
+from app.modules import discoveries, viewport
 from app.modules.viewport import service
-from tests.factories import build_place, build_user
+from tests.factories import build_guest_session, build_place, build_user
 
 NEWFOUNDLAND = service.BBox(west=-54.0, south=47.0, east=-53.0, north=48.0)
 
@@ -61,6 +61,29 @@ async def test_zoom_bands_return_the_documented_shape(
     assert close.band is service.Band.PIN
     assert {feature.name for feature in close.features} == {"Place 0", "Place 1", "Place 2"}
     assert close.features[0].finder == "finder"
+
+
+async def test_a_guest_claim_is_drawn_like_any_other(
+    db: AsyncSession, fake_redis: FakeRedis
+) -> None:
+    """A pin the guest cannot see is a claim they have no reason to keep."""
+    place = await build_place(db, name="Guest Find", geonames_id=600_500, lon=-53.5, lat=47.5)
+    guest = await build_guest_session(db)
+    db.add(
+        Discovery(
+            place_id=place.id,
+            claimant_type="guest",
+            guest_session_id=guest.id,
+            expires_at=datetime.now(UTC) + timedelta(days=7),
+            caption="found",
+        )
+    )
+    await db.flush()
+
+    close = await viewport.query(db, fake_redis, NEWFOUNDLAND, zoom=12)
+
+    assert [feature.name for feature in close.features] == ["Guest Find"]
+    assert close.features[0].finder == discoveries.GUEST_FINDER
 
 
 async def test_a_cache_hit_returns_the_same_payload_as_a_miss(

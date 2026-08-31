@@ -45,8 +45,12 @@ ZONE_LOOKUP_SQL: Final = """
 """
 
 
-async def check(session: AsyncSession, place_id: int, user_id: UUID) -> EligibilityVerdict:
-    """Whether this user may claim or nickname this place."""
+async def check(session: AsyncSession, place_id: int, user_id: UUID | None) -> EligibilityVerdict:
+    """Whether this claimant may claim or nickname this place.
+
+    A guest has no account and so no declared language; they are treated as
+    the default, which means Tier B asks them for an etymology too.
+    """
     place = await session.get(Place, place_id)
     if place is None:
         return EligibilityVerdict(Eligibility.BLOCKED, "That place is not in the gazetteer.")
@@ -58,7 +62,7 @@ async def check(session: AsyncSession, place_id: int, user_id: UUID) -> Eligibil
             return EligibilityVerdict(Eligibility.BLOCKED, reason)
         return EligibilityVerdict(Eligibility.ETYMOLOGY_REQUIRED, reason)
 
-    user = await session.get(User, user_id)
+    user = None if user_id is None else await session.get(User, user_id)
     ui_language = user.ui_language if user is not None else "en"
     if languages.is_likely_foreign(place.country_code, ui_language):
         return EligibilityVerdict(

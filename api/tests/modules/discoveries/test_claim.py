@@ -29,7 +29,7 @@ async def test_claiming_an_unclaimed_place_credits_the_finder(db: AsyncSession) 
     place = await build_place(db)
     user = await build_user(db, username="firstfinder")
 
-    discovery = await discoveries.claim(db, place.id, user.id, CAPTION)
+    discovery = await discoveries.claim(db, place.id, discoveries.UserClaimant(user.id), CAPTION)
 
     assert discovery.place_id == place.id
     assert discovery.user_id == user.id
@@ -40,10 +40,10 @@ async def test_claiming_a_claimed_place_is_a_clear_conflict(db: AsyncSession) ->
     place = await build_place(db)
     first = await build_user(db, username="firstfinder")
     second = await build_user(db, username="latecomer")
-    await discoveries.claim(db, place.id, first.id, CAPTION)
+    await discoveries.claim(db, place.id, discoveries.UserClaimant(first.id), CAPTION)
 
     with pytest.raises(service.AlreadyClaimedError):
-        await discoveries.claim(db, place.id, second.id, CAPTION)
+        await discoveries.claim(db, place.id, discoveries.UserClaimant(second.id), CAPTION)
 
 
 async def test_an_ineligible_place_is_rejected_before_the_classifier_runs(
@@ -70,7 +70,7 @@ async def test_an_ineligible_place_is_rejected_before_the_classifier_runs(
     monkeypatch.setattr(classifier, "classify", counted)
 
     with pytest.raises(service.NotEligibleError):
-        await discoveries.claim(db, place.id, user.id, CAPTION)
+        await discoveries.claim(db, place.id, discoveries.UserClaimant(user.id), CAPTION)
 
     assert calls == 0
 
@@ -87,7 +87,9 @@ async def test_a_rejected_caption_leaves_no_orphan_discovery(
     monkeypatch.setattr(classifier, "classify", flags_spam)
 
     with pytest.raises(service.CaptionRejectedError):
-        await discoveries.claim(db, place.id, user.id, "buy cheap maps dot com")
+        await discoveries.claim(
+            db, place.id, discoveries.UserClaimant(user.id), "buy cheap maps dot com"
+        )
 
     assert await db.scalar(select(func.count()).select_from(Discovery)) == 0
 
@@ -96,7 +98,7 @@ async def test_for_user_lists_newest_first(db: AsyncSession) -> None:
     user = await build_user(db, username="collector")
     for index, name in enumerate(("Dildo", "Boring", "Dull")):
         place = await build_place(db, name=name, geonames_id=900_000 + index)
-        await discoveries.claim(db, place.id, user.id, CAPTION)
+        await discoveries.claim(db, place.id, discoveries.UserClaimant(user.id), CAPTION)
 
     found = await discoveries.for_user(db, user.id)
 
@@ -142,7 +144,9 @@ async def test_two_concurrent_claims_leave_exactly_one_winner(test_database: str
     async def attempt(user_id: UUID) -> str:
         async with maker() as session:
             try:
-                await discoveries.claim(session, place_id, user_id, CAPTION)
+                await discoveries.claim(
+                    session, place_id, discoveries.UserClaimant(user_id), CAPTION
+                )
                 await session.commit()
             except Exception as error:
                 await session.rollback()
@@ -188,9 +192,13 @@ async def test_a_tier_b_place_cannot_be_claimed_without_an_etymology(db: AsyncSe
     user = await build_user(db, username="english")
 
     with pytest.raises(service.EtymologyRequiredError):
-        await discoveries.claim(db, place.id, user.id, CAPTION)
+        await discoveries.claim(db, place.id, discoveries.UserClaimant(user.id), CAPTION)
 
     discovery = await discoveries.claim(
-        db, place.id, user.id, CAPTION, etymology="Named for the Boldin family estate."
+        db,
+        place.id,
+        discoveries.UserClaimant(user.id),
+        CAPTION,
+        etymology="Named for the Boldin family estate.",
     )
     assert discovery.id is not None

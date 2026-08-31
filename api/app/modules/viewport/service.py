@@ -19,6 +19,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import observability
 
+# The label a guest claim renders under belongs to the claim, not to the
+# renderer, so it is read from the module that owns claims.
+from app.modules.discoveries import GUEST_FINDER
+
 logger = logging.getLogger(__name__)
 
 #: The renderer's budget. PRD 11.3: 500 pins at 55fps on mid-range Android.
@@ -167,12 +171,12 @@ _CLUSTER_SQL: Final = """
 """
 
 _PIN_SQL: Final = """
-    SELECT p.id, p.name, u.username,
+    SELECT p.id, p.name, COALESCE(u.username, :guest_finder) AS finder,
            ST_X(p.centroid::geometry) AS lon, ST_Y(p.centroid::geometry) AS lat,
            p.country_code
     FROM discoveries d
     JOIN places p ON p.id = d.place_id
-    JOIN users u ON u.id = d.user_id
+    LEFT JOIN users u ON u.id = d.user_id
     WHERE {spatial}
     ORDER BY p.population DESC, p.tier, d.id
     LIMIT :limit
@@ -227,7 +231,12 @@ async def _load(session: AsyncSession, bbox: BBox, band: Band) -> list[Feature]:
         ).all()
         return [Feature(lon=float(r[1]), lat=float(r[2]), count=int(r[0])) for r in rows]
 
-    rows = (await session.execute(sql(_PIN_SQL.format(spatial=spatial)), params)).all()
+    rows = (
+        await session.execute(
+            sql(_PIN_SQL.format(spatial=spatial)),
+            {**params, "guest_finder": GUEST_FINDER},
+        )
+    ).all()
     return [
         Feature(
             lon=float(r[3]),
