@@ -90,8 +90,15 @@ class CircuitBreaker:
 breaker = CircuitBreaker(FAILURE_THRESHOLD)
 
 
+#: Minimal, not because the answer matters less but because somebody is
+#: waiting. Measured live: the same verdict in 1.1s rather than 3.7s, against a
+#: 5s fail-closed timeout. Screening a sentence is classification, not a task
+#: that rewards deliberation.
+_REASONING_EFFORT: Final = "minimal"
+
+
 def _client() -> llm.LLMClient | None:
-    return llm.build_client(settings.moderation_model, TIMEOUT_SECONDS)
+    return llm.build_client(settings.moderation_model, TIMEOUT_SECONDS, _REASONING_EFFORT)
 
 
 def _verdict_from(reply: Any) -> Categories:

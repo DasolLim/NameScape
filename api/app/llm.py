@@ -53,32 +53,44 @@ class OpenRouterClient:
     """
 
     def __init__(
-        self, api_key: str, model: str, timeout_seconds: float = BATCH_TIMEOUT_SECONDS
+        self,
+        api_key: str,
+        model: str,
+        timeout_seconds: float = BATCH_TIMEOUT_SECONDS,
+        reasoning_effort: str | None = None,
     ) -> None:
         self._api_key = api_key
         self._model = model
         self._timeout = timeout_seconds
+        self._reasoning_effort = reasoning_effort
 
     @property
     def model(self) -> str:
         return self._model
 
-    async def complete_json(self, prompt: str, *, system: str | None = None) -> Any:
+    def payload_for(self, prompt: str, system: str | None = None) -> dict[str, Any]:
+        """The request body. Separated so it can be asserted on without a call."""
         messages: list[dict[str, str]] = []
         if system is not None:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
 
+        body: dict[str, Any] = {
+            "model": self._model,
+            "messages": messages,
+            "response_format": {"type": "json_object"},
+        }
+        if self._reasoning_effort is not None:
+            body["reasoning_effort"] = self._reasoning_effort
+        return body
+
+    async def complete_json(self, prompt: str, *, system: str | None = None) -> Any:
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
                 response = await client.post(
                     _ENDPOINT,
                     headers={"Authorization": f"Bearer {self._api_key}"},
-                    json={
-                        "model": self._model,
-                        "messages": messages,
-                        "response_format": {"type": "json_object"},
-                    },
+                    json=self.payload_for(prompt, system),
                 )
                 response.raise_for_status()
                 content = response.json()["choices"][0]["message"]["content"]
@@ -94,8 +106,10 @@ class OpenRouterClient:
 
 
 def build_client(
-    model: str | None = None, timeout_seconds: float = BATCH_TIMEOUT_SECONDS
-) -> LLMClient | None:
+    model: str | None = None,
+    timeout_seconds: float = BATCH_TIMEOUT_SECONDS,
+    reasoning_effort: str | None = None,
+) -> OpenRouterClient | None:
     """A client, or None when no key is configured.
 
     For the offline callers None is a supported state rather than a failure:
@@ -105,5 +119,8 @@ def build_client(
     if not settings.openrouter_api_key:
         return None
     return OpenRouterClient(
-        settings.openrouter_api_key, model or settings.openrouter_model, timeout_seconds
+        settings.openrouter_api_key,
+        model or settings.openrouter_model,
+        timeout_seconds,
+        reasoning_effort,
     )
