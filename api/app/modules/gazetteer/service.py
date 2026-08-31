@@ -26,6 +26,8 @@ class PlaceResult:
     feature_class: str
     feature_code: str
     country_code: str | None
+    #: State or province code, so two places of the same name are telling apart.
+    admin1: str | None
     tier: int
     lat: float
     lon: float
@@ -85,7 +87,7 @@ _FUZZY_SQL = text(
 _HYDRATE_SQL = text(
     """
     SELECT p.id, p.geonames_id, p.name, p.feature_class, p.feature_code,
-           p.country_code, p.tier,
+           p.country_code, p.admin1, p.tier,
            ST_Y(p.centroid::geometry) AS lat, ST_X(p.centroid::geometry) AS lon,
            u.username AS claimed_by
     FROM places p
@@ -151,6 +153,7 @@ async def _hydrate(session: AsyncSession, geonames_ids: list[int]) -> list[Place
             feature_class=row["feature_class"],
             feature_code=row["feature_code"],
             country_code=row["country_code"],
+            admin1=row["admin1"],
             tier=int(row["tier"]),
             lat=float(row["lat"]),
             lon=float(row["lon"]),

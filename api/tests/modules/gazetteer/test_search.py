@@ -2,6 +2,7 @@ import inspect
 from pathlib import Path
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules import gazetteer
@@ -202,3 +203,22 @@ async def test_a_broad_search_finds_what_a_normal_one_misses(db: AsyncSession) -
     broadened = await gazetteer.search(db, typo, broad=True)
 
     assert [place.name for place in broadened] == ["Ffynnongroyw"]
+
+
+async def test_results_carry_the_region_so_duplicates_are_distinguishable(
+    db: AsyncSession,
+) -> None:
+    """Real gazetteer data has many places sharing a name; two identical rows
+    tell the user nothing about which is which."""
+    await build_place(db, name="Springfield", geonames_id=700_601, country_code="US")
+    await db.execute(
+        text("UPDATE places SET admin1 = 'IL' WHERE geonames_id = 700601"),
+    )
+    await build_place(db, name="Springfield", geonames_id=700_602, country_code="US")
+    await db.execute(
+        text("UPDATE places SET admin1 = 'MO' WHERE geonames_id = 700602"),
+    )
+
+    regions = {place.admin1 for place in await gazetteer.search(db, "Springfield")}
+
+    assert regions == {"IL", "MO"}
