@@ -9,7 +9,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Final
 from uuid import UUID
 
-from sqlalchemy import func, select
 from sqlalchemy import text as sql
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -181,13 +180,18 @@ async def claim(
     return discovery
 
 
+#: Two ways a guest session can have spent its one claim: it still holds the
+#: row, or the row was merged into an account, which clears the link back to
+#: the session and leaves merged_into as the only remaining record of it.
+_SPENT_SQL: Final = sql(
+    "SELECT EXISTS (SELECT 1 FROM discoveries WHERE guest_session_id = :id) "
+    "    OR EXISTS (SELECT 1 FROM guest_sessions "
+    "               WHERE id = :id AND merged_into IS NOT NULL)"
+)
+
+
 async def _guest_has_claimed(session: AsyncSession, guest_session_id: UUID) -> bool:
-    held = await session.scalar(
-        select(func.count())
-        .select_from(Discovery)
-        .where(Discovery.guest_session_id == guest_session_id)
-    )
-    return bool(held)
+    return bool(await session.scalar(_SPENT_SQL, {"id": guest_session_id}))
 
 
 def _row_for(claimant: Claimant, place_id: int, caption: str) -> Discovery:

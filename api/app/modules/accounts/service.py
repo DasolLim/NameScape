@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models import Discovery, MagicLink, Place, User
-from app.modules.accounts import delivery, streak, usernames
+from app.modules.accounts import delivery, guests, streak, usernames
 
 MAGIC_LINK_TTL: Final = timedelta(minutes=15)
 MAGIC_LINKS_PER_HOUR: Final = 3
@@ -123,12 +123,22 @@ async def request_magic_link(session: AsyncSession, redis: Redis, email: str) ->
     await delivery.send_magic_link(email, token)
 
 
-async def authenticate(session: AsyncSession, token: str) -> Session | None:
-    """Turn a magic link or a session cookie into a session. None if neither."""
+async def authenticate(
+    session: AsyncSession, token: str, guest_cookie: str | None = None
+) -> Session | None:
+    """Turn a magic link or a session cookie into a session. None if neither.
+
+    A guest cookie, if one comes with it, is merged here rather than by the
+    caller. Signing in is the moment the claim stops being provisional, and
+    making callers orchestrate that would mean every one of them could forget.
+    """
     user_id = _user_id_from_cookie(token)
     if user_id is not None:
         user = await session.get(User, user_id)
-        return None if user is None else _session_for(user)
+        if user is None:
+            return None
+        await guests.merge(session, guest_cookie, user)
+        return _session_for(user)
 
     link = (
         (await session.execute(select(MagicLink).where(MagicLink.token_hash == _digest(token))))
@@ -139,8 +149,11 @@ async def authenticate(session: AsyncSession, token: str) -> Session | None:
         return None
 
     link.used_at = datetime.now(UTC)
+    # An existing email returns the existing account, so a guest claim merges
+    # into it rather than spawning a duplicate user.
     user = await _user_for_email(session, link.email)
     await session.flush()
+    await guests.merge(session, guest_cookie, user)
     return _session_for(user)
 
 
