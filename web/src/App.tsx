@@ -18,6 +18,7 @@ import EtymologyPanel from './etymology/EtymologyPanel'
 import GlobeCanvas from './GlobeCanvas'
 import type { GlobeHandle, PlaceRef } from './globe'
 import Passport from './passport/Passport'
+import PuzzlePanel from './puzzle/PuzzlePanel'
 import Starfield from './Starfield'
 
 function toPlaceRef(place: SearchResult): PlaceRef {
@@ -41,6 +42,7 @@ export default function App() {
   //: tells the sheet to explain itself rather than offer a second.
   const [held, setHeld] = useState<HeldClaim | null>(null)
   const [passportOpen, setPassportOpen] = useState(false)
+  const [puzzleOpen, setPuzzleOpen] = useState(false)
   const [layers, setLayers] = useState<Layers>({
     discoveries: true,
     bookmarks: true,
@@ -115,6 +117,7 @@ export default function App() {
         layers={layers}
         onLayersChange={onLayersChange}
         onSelectPlace={onSelectPlace}
+        onOpenPuzzle={() => setPuzzleOpen((open) => !open)}
         onOpenBookmarks={() => requireAuth(() => setBookmarksOpen((open) => !open))}
         onOpenPassport={() => setPassportOpen(true)}
       />
@@ -127,6 +130,30 @@ export default function App() {
 
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center gap-3 overflow-y-auto p-4">
           <SignInSheet />
+
+          {puzzleOpen && (
+            <div className="pointer-events-auto w-[min(26rem,92vw)] text-left">
+              <PuzzlePanel
+                onFocusPlace={(at) => {
+                  // The globe module owns the map; this asks it to look.
+                  void globe.current?.focusOn({
+                    id: 'puzzle-pin',
+                    lon: at.lon,
+                    lat: at.lat,
+                    featureClass: 'P',
+                  })
+                }}
+                onClaim={(placeId) => {
+                  void fetchPlace(placeId)
+                    .then((found) => {
+                      setPlace(found)
+                      setPuzzleOpen(false)
+                    })
+                    .catch(() => undefined)
+                }}
+              />
+            </div>
+          )}
 
           {bookmarksOpen && user && (
             <div className="pointer-events-auto">

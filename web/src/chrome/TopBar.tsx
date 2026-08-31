@@ -9,6 +9,7 @@ import StreakBadge from './StreakBadge'
 import Wordmark from './Wordmark'
 
 interface TopBarProps {
+  onOpenPuzzle: () => void
   layers: Layers
   onLayersChange: (layers: Layers) => void
   onSelectPlace: (place: SearchResult) => void
@@ -26,6 +27,7 @@ interface TopBarProps {
  * afford it, and it still leaves contrast at the mercy of the basemap.
  */
 export default function TopBar({
+  onOpenPuzzle,
   layers,
   onLayersChange,
   onSelectPlace,
@@ -66,6 +68,18 @@ export default function TopBar({
             {closingSoon}
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={onOpenPuzzle}
+          aria-label="Today's place, the daily puzzle"
+          className="min-h-11 min-w-11 rounded-control px-2 text-sm text-parchment-200 hover:bg-ink-800 hover:text-parchment-50 sm:min-h-0 sm:min-w-0 sm:px-3 sm:py-2"
+        >
+          <span aria-hidden="true" className="sm:hidden">
+            ?
+          </span>
+          <span className="hidden whitespace-nowrap sm:inline">Today&rsquo;s place</span>
+        </button>
 
         <StreakBadge
           days={user ? (activity?.streak_days ?? null) : null}

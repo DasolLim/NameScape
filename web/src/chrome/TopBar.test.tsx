@@ -12,6 +12,7 @@ function renderBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
   return render(
     <TopBar
       layers={LAYERS}
+      onOpenPuzzle={vi.fn()}
       onLayersChange={vi.fn()}
       onSelectPlace={vi.fn()}
       onOpenBookmarks={vi.fn()}
