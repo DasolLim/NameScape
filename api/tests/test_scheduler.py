@@ -8,6 +8,7 @@ from fakeredis.aioredis import FakeRedis
 from app import scheduler
 from app.modules import contests
 from app.modules.discoveries import expiry
+from app.modules.puzzles import rollover
 
 
 @pytest.fixture(autouse=True)
@@ -33,7 +34,13 @@ def no_database(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
     monkeypatch.setattr(scheduler, "SessionLocal", session_factory)
     monkeypatch.setattr(contests, "resolve_due", resolve_due)
+
+    async def roll(_session: Any) -> int:
+        calls.append("roll")
+        return 0
+
     monkeypatch.setattr(expiry, "release_expired", release_expired)
+    monkeypatch.setattr(rollover, "roll_over", roll)
     return calls
 
 
@@ -78,7 +85,23 @@ async def test_a_release_run_deletes_and_then_frees_the_lock(
     assert await fake_redis.get(scheduler.RELEASE_LOCK_KEY) is None
 
 
-@pytest.mark.parametrize("job_id", ["resolve-due", "release-expired"])
+async def test_the_lock_stops_a_second_worker_rolling_the_puzzle_over(
+    fake_redis: FakeRedis, no_database: list[str]
+) -> None:
+    await fake_redis.set(scheduler.ROLLOVER_LOCK_KEY, "1", ex=60)
+
+    assert await scheduler.roll_over_once(fake_redis) == 0
+    assert no_database == []
+
+
+async def test_a_rollover_run_frees_the_lock(fake_redis: FakeRedis, no_database: list[str]) -> None:
+    await scheduler.roll_over_once(fake_redis)
+
+    assert no_database == ["roll", "commit"]
+    assert await fake_redis.get(scheduler.ROLLOVER_LOCK_KEY) is None
+
+
+@pytest.mark.parametrize("job_id", ["resolve-due", "release-expired", "puzzle-rollover"])
 def test_every_job_runs_one_instance_at_a_time(job_id: str) -> None:
     job = scheduler.build_scheduler().get_job(job_id)
 
