@@ -226,6 +226,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/puzzle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Puzzle
+         * @description Today's puzzle and this player's progress. Null on a day without one.
+         */
+        get: operations["read_puzzle_api_puzzle_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/puzzle/{puzzle_id}/guess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Guess Puzzle
+         * @description Guess, and hear how close it came. No account needed to play.
+         */
+        post: operations["guess_puzzle_api_puzzle__puzzle_id__guess_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/puzzle/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Puzzle Archive
+         * @description Puzzles that have been and gone, and how they went.
+         *
+         *     Account-gated, per Addendum A. No answers: it is for replaying, not for
+         *     reading ahead. The refusal says what an account is for here rather than
+         *     the generic "sign in", because the archive is a reason to have one.
+         */
+        get: operations["read_puzzle_archive_api_puzzle_archive_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/viewport": {
         parameters: {
             query?: never;
@@ -362,6 +426,27 @@ export interface components {
             /** Streak At Risk */
             streak_at_risk: boolean;
         };
+        /** ArchiveEntry */
+        ArchiveEntry: {
+            /** Puzzle Id */
+            puzzle_id: number;
+            /** Number */
+            number: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Solved */
+            solved: boolean;
+            /** Guesses */
+            guesses: number;
+        };
+        /** ArchiveResponse */
+        ArchiveResponse: {
+            /** Puzzles */
+            puzzles: components["schemas"]["ArchiveEntry"][];
+        };
         /** BookmarksResponse */
         BookmarksResponse: {
             /** Bookmarks */
@@ -424,6 +509,11 @@ export interface components {
         ErrorResponse: {
             /** Detail */
             detail: string;
+        };
+        /** GuessRequest */
+        GuessRequest: {
+            /** Place Id */
+            place_id: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -554,6 +644,68 @@ export interface components {
              * @default false
              */
             is_yours: boolean;
+        };
+        /** PuzzleAnswerResponse */
+        PuzzleAnswerResponse: {
+            /** Place Id */
+            place_id: number;
+            /** Name */
+            name: string;
+            /** Country Code */
+            country_code: string | null;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Claimed By */
+            claimed_by: string | null;
+        };
+        /** PuzzleGuessResponse */
+        PuzzleGuessResponse: {
+            /** Place Id */
+            place_id: number;
+            /** Name */
+            name: string;
+            /** Distance Km */
+            distance_km: number;
+            /** Bearing */
+            bearing: number;
+            /** Arrow */
+            arrow: string;
+            /** Band */
+            band: string;
+            /** Proximity */
+            proximity: number;
+        };
+        /** PuzzlePinResponse */
+        PuzzlePinResponse: {
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+        };
+        /** PuzzleStateResponse */
+        PuzzleStateResponse: {
+            /** Puzzle Id */
+            puzzle_id: number;
+            /** Number */
+            number: number;
+            /** Clues */
+            clues: string[];
+            /** Guesses */
+            guesses: components["schemas"]["PuzzleGuessResponse"][];
+            /** Solved */
+            solved: boolean;
+            /** Complete */
+            complete: boolean;
+            /** Remaining */
+            remaining: number;
+            pin: components["schemas"]["PuzzlePinResponse"] | null;
+            answer: components["schemas"]["PuzzleAnswerResponse"] | null;
+            /** Share Grid */
+            share_grid: string;
+            /** Streak */
+            streak: number;
         };
         /** SavedPlaceResponse */
         SavedPlaceResponse: {
@@ -1290,6 +1442,161 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    read_puzzle_api_puzzle_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                toponomicon_session?: string | null;
+                toponomicon_guest?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PuzzleStateResponse"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    guess_puzzle_api_puzzle__puzzle_id__guess_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                puzzle_id: number;
+            };
+            cookie?: {
+                toponomicon_session?: string | null;
+                toponomicon_guest?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuessRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PuzzleStateResponse"];
+                };
+            };
+            /** @description Malformed request body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Writes are temporarily unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    read_puzzle_archive_api_puzzle_archive_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                toponomicon_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveResponse"];
+                };
+            };
+            /** @description Not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Any, Final, Literal
 
 from fastapi import Cookie, Depends, FastAPI, HTTPException, Path, Query, Request, Response
@@ -15,10 +15,11 @@ from app.cache import build_client, get_redis
 from app.config import settings
 from app.db import engine, get_session
 from app.models import Place, User
-from app.modules import accounts, contests, discoveries, eligibility, gazetteer, viewport
+from app.modules import accounts, contests, discoveries, eligibility, gazetteer, puzzles, viewport
 from app.modules.accounts import bookmarks, guests, share_card
 from app.modules.contests import activity
 from app.modules.gazetteer import corrections
+from app.modules.puzzles import play
 from app.text import StripNulMiddleware, strip_nul
 
 app = FastAPI(title="Toponomicon API")
@@ -586,6 +587,236 @@ async def create_discovery(
         finder=finder,
         caption=discovery.caption,
         expires_at=discovery.expires_at,
+    )
+
+
+class PuzzleGuessResponse(BaseModel):
+    place_id: int
+    name: str
+    distance_km: float
+    bearing: float
+    #: One of eight, so the player is told which way to go next.
+    arrow: str
+    band: str
+    proximity: int
+
+
+class PuzzlePinResponse(BaseModel):
+    lat: float
+    lon: float
+
+
+class PuzzleAnswerResponse(BaseModel):
+    place_id: int
+    name: str
+    country_code: str | None
+    lat: float
+    lon: float
+    claimed_by: str | None
+
+
+class PuzzleStateResponse(BaseModel):
+    puzzle_id: int
+    number: int
+    clues: list[str]
+    guesses: list[PuzzleGuessResponse]
+    solved: bool
+    complete: bool
+    remaining: int
+    #: The last clue, earned by a fourth wrong guess. Drawn on the globe.
+    pin: PuzzlePinResponse | None
+    #: Withheld until the attempt is over.
+    answer: PuzzleAnswerResponse | None
+    share_grid: str
+    streak: int
+
+
+class ArchiveEntry(BaseModel):
+    puzzle_id: int
+    number: int
+    date: date
+    solved: bool
+    guesses: int
+
+
+class ArchiveResponse(BaseModel):
+    puzzles: list[ArchiveEntry]
+
+
+class GuessRequest(BaseModel):
+    place_id: int = Field(ge=1, le=MAX_BIGINT)
+
+
+def _state_response(state: puzzles.AttemptState) -> PuzzleStateResponse:
+    return PuzzleStateResponse(
+        puzzle_id=state.puzzle_id,
+        number=state.puzzle_number,
+        clues=state.clues,
+        guesses=[
+            PuzzleGuessResponse(
+                place_id=guess.place_id,
+                name=guess.name,
+                distance_km=round(guess.distance_km, 1),
+                bearing=round(guess.bearing, 1),
+                arrow=guess.arrow,
+                band=guess.band.name.casefold(),
+                proximity=guess.proximity,
+            )
+            for guess in state.guesses
+        ],
+        solved=state.solved,
+        complete=state.complete,
+        remaining=state.remaining,
+        pin=PuzzlePinResponse(lat=state.pin[0], lon=state.pin[1]) if state.pin else None,
+        answer=(
+            PuzzleAnswerResponse(
+                place_id=state.answer.place_id,
+                name=state.answer.name,
+                country_code=state.answer.country_code,
+                lat=state.answer.lat,
+                lon=state.answer.lon,
+                claimed_by=state.answer.claimed_by,
+            )
+            if state.answer
+            else None
+        ),
+        share_grid=state.share_grid,
+        streak=state.streak,
+    )
+
+
+async def _existing_player(
+    session: AsyncSession, session_cookie: str | None, guest_cookie: str | None
+) -> discoveries.Claimant | None:
+    """Whoever is already known, without creating anybody.
+
+    Reading the puzzle must not mint a guest session for somebody who opens the
+    page and never guesses.
+    """
+    user = await _signed_in_user(session, session_cookie)
+    if user is not None:
+        return discoveries.UserClaimant(user.id)
+    guest_id = guests.identify(guest_cookie)
+    return None if guest_id is None else discoveries.GuestClaimant(guest_id)
+
+
+@app.get("/api/puzzle")
+async def read_puzzle(
+    session: SessionDep,
+    toponomicon_session: Annotated[str | None, Cookie()] = None,
+    toponomicon_guest: Annotated[str | None, Cookie()] = None,
+) -> PuzzleStateResponse | None:
+    """Today's puzzle and this player's progress. Null on a day without one."""
+    puzzle = await puzzles.today(session)
+    if puzzle is None:
+        return None
+
+    player = await _existing_player(session, toponomicon_session, toponomicon_guest)
+    if player is None:
+        # Nobody to look up, so nothing has been earned: the opening state.
+        return PuzzleStateResponse(
+            puzzle_id=puzzle.id,
+            number=play.puzzle_number(puzzle.puzzle_date),
+            clues=list(puzzle.clues[:1]),
+            guesses=[],
+            solved=False,
+            complete=False,
+            remaining=play.MAX_GUESSES,
+            pin=None,
+            answer=None,
+            share_grid="",
+            streak=0,
+        )
+
+    return _state_response(await puzzles.state_for(session, puzzle.id, player))
+
+
+@app.post("/api/puzzle/{puzzle_id}/guess", responses=_errors(404, 409, *WRITE_ERRORS))
+async def guess_puzzle(
+    puzzle_id: PlaceId,
+    body: GuessRequest,
+    response: Response,
+    session: SessionDep,
+    toponomicon_session: Annotated[str | None, Cookie()] = None,
+    toponomicon_guest: Annotated[str | None, Cookie()] = None,
+) -> PuzzleStateResponse:
+    """Guess, and hear how close it came. No account needed to play."""
+    user = await _signed_in_user(session, toponomicon_session)
+    guest: guests.Guest | None = None
+    if user is not None:
+        player: discoveries.Claimant = discoveries.UserClaimant(user.id)
+    else:
+        # Guessing is the first moment there is anything to remember.
+        guest = await guests.resolve(session, toponomicon_guest)
+        player = discoveries.GuestClaimant(guest.id)
+
+    try:
+        await puzzles.guess(session, puzzle_id, player, body.place_id)
+    except puzzles.NoPuzzleError:
+        raise HTTPException(status_code=404, detail="No such puzzle") from None
+    except puzzles.UnknownPlaceError:
+        raise HTTPException(status_code=404, detail="No such place") from None
+    except puzzles.AttemptCompleteError:
+        raise HTTPException(status_code=409, detail="You have finished today's puzzle") from None
+
+    state = await puzzles.state_for(session, puzzle_id, player)
+    await session.commit()
+
+    if guest is not None:
+        response.set_cookie(
+            GUEST_COOKIE,
+            guest.cookie,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=guests.GUEST_TTL_SECONDS,
+        )
+    return _state_response(state)
+
+
+@app.get("/api/puzzle/archive", responses=_errors(401))
+async def read_puzzle_archive(
+    session: SessionDep, toponomicon_session: Annotated[str | None, Cookie()] = None
+) -> ArchiveResponse:
+    """Puzzles that have been and gone, and how they went.
+
+    Account-gated, per Addendum A. No answers: it is for replaying, not for
+    reading ahead. The refusal says what an account is for here rather than
+    the generic "sign in", because the archive is a reason to have one.
+    """
+    user = await _signed_in_user(session, toponomicon_session)
+    if user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Past puzzles are kept with your account. Create one to play them.",
+        )
+
+    rows = (
+        await session.execute(
+            text(
+                "SELECT z.id, z.puzzle_date, "
+                "       COALESCE(a.solved, false), COALESCE(a.guess_count, 0) "
+                "FROM puzzles z "
+                "LEFT JOIN puzzle_attempts a "
+                "  ON a.puzzle_id = z.id AND a.user_id = :user_id "
+                "WHERE z.status = 'archived' "
+                "ORDER BY z.puzzle_date DESC LIMIT 90"
+            ),
+            {"user_id": user.id},
+        )
+    ).all()
+
+    return ArchiveResponse(
+        puzzles=[
+            ArchiveEntry(
+                puzzle_id=int(row[0]),
+                number=play.puzzle_number(row[1]),
+                date=row[1],
+                solved=bool(row[2]),
+                guesses=int(row[3]),
+            )
+            for row in rows
+        ]
     )
 
 
