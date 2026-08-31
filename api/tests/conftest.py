@@ -4,6 +4,7 @@ import subprocess
 from collections.abc import AsyncIterator, Iterator
 
 import asyncpg
+import httpx
 import pytest
 from fakeredis.aioredis import FakeRedis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -80,6 +81,35 @@ async def fake_redis() -> AsyncIterator[FakeRedis]:
         yield client
     finally:
         await client.aclose()
+
+
+@pytest.fixture(autouse=True)
+def no_outbound_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No test reaches a real service, and cannot do so by omission.
+
+    Two holes this closes. A test that called gazetteer.enrich() without
+    mocking its sources was quietly making live Wikidata and Wikipedia
+    requests, and passing only because they happened to return nothing useful.
+    Then, the moment an OPENROUTER_API_KEY existed in .env, the same test
+    started spending money and asserting against whatever a model said.
+
+    The rule: inside a test, an httpx client with no explicit transport is a
+    real network call. Endpoint tests pass ASGITransport and are unaffected.
+    """
+    monkeypatch.setattr(settings, "openrouter_api_key", "")
+
+    real_client = httpx.AsyncClient
+
+    class Guarded(real_client):  # type: ignore[misc,valid-type]
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            if kwargs.get("transport") is None:
+                raise RuntimeError(
+                    "a test tried to open a real network connection. Mock the "
+                    "backend it calls, or pass an explicit httpx transport."
+                )
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(httpx, "AsyncClient", Guarded)
 
 
 @pytest.fixture(autouse=True)

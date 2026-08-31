@@ -119,13 +119,31 @@ async def test_enrich_stores_etymology_and_does_not_ask_twice(
     assert calls == 1
 
 
-async def test_enrich_degrades_when_wikidata_has_nothing(db: AsyncSession) -> None:
+async def test_enrich_degrades_when_every_source_has_nothing(
+    db: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Silence from all four tiers is an answer, not an error.
+
+    Every source is stubbed. Left unstubbed this test made live Wikidata,
+    Wikipedia and OpenRouter calls, and passed only because they happened to
+    return nothing.
+    """
+
+    async def nothing_from_wikidata(_wikidata_id: str) -> None:
+        return None
+
+    async def nothing_from_wikipedia(_name: str, _language: str) -> None:
+        return None
+
+    monkeypatch.setattr(backends, "wikidata_etymology", nothing_from_wikidata)
+    monkeypatch.setattr(backends, "wikipedia_etymology", nothing_from_wikipedia)
     await import_geonames(db, FIXTURE)
     boring = await gazetteer.search(db, "Boring")
 
     enriched = await gazetteer.enrich(db, boring[0].id)
 
     assert enriched.etymology is None
+    assert enriched.etymology_confidence == "unknown"
 
 
 def test_the_module_exposes_exactly_three_public_functions() -> None:
