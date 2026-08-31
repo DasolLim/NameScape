@@ -153,6 +153,45 @@ class Puzzle(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class PuzzleAttempt(Base):
+    """One player's run at one puzzle. Five guesses, then it is over."""
+
+    __tablename__ = "puzzle_attempts"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    puzzle_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("puzzles.id", ondelete="CASCADE"))
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    guest_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("guest_sessions.id", ondelete="CASCADE")
+    )
+    #: Ordered {place_id, distance_km, bearing}, one per guess made.
+    guesses: Mapped[list[dict[str, object]]] = mapped_column(JSONB, default=list)
+    solved: Mapped[bool] = mapped_column(Boolean, default=False)
+    guess_count: Mapped[int] = mapped_column(SmallInteger, default=0)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Streak(Base):
+    """Consecutive days a player solved the puzzle.
+
+    Not the activity streak on the passport: that one counts days with a
+    discovery or a vote and is worked out live from those rows. This one is
+    stored, because a solve on a day that has passed cannot be recomputed from
+    anything else.
+    """
+
+    __tablename__ = "streaks"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    current: Mapped[int] = mapped_column(Integer, default=0)
+    longest: Mapped[int] = mapped_column(Integer, default=0)
+    last_played_on: Mapped[date | None] = mapped_column(Date)
+
+
 class MagicLink(Base):
     """A single-use sign-in token. Only the hash is stored."""
 
