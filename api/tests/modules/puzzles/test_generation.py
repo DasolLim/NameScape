@@ -281,6 +281,47 @@ async def test_the_clues_run_from_meaning_to_country(db: AsyncSession) -> None:
     assert len(clues) == 4
 
 
+async def test_the_scale_clue_only_talks_about_population_where_that_means_something(
+    db: AsyncSession,
+) -> None:
+    """Real output: Great Britain came out as "a landform, a large city". A
+    population figure describes a settlement, not a lake or an island."""
+    island = await build_place(
+        db,
+        name="Britainby",
+        geonames_id=740_001,
+        country_code="GB",
+        feature_class="T",
+        tier=1,
+        population=60_000_000,
+    )
+    island.etymology = "The name derives from an older word."
+    await db.flush()
+
+    clues = generation.clues_for(island, "A meaning.")
+
+    assert "city" not in clues[1]
+    assert "landform" in clues[1]
+
+
+async def test_a_populated_place_still_gets_its_rough_size(db: AsyncSession) -> None:
+    town = await build_place(
+        db,
+        name="Placeby",
+        geonames_id=740_002,
+        country_code="GB",
+        feature_class="P",
+        tier=2,
+        population=50_000,
+    )
+    town.etymology = "The name derives from an older word."
+    await db.flush()
+
+    clues = generation.clues_for(town, "A meaning.")
+
+    assert "town" in clues[1]
+
+
 async def test_no_clue_names_the_place(db: AsyncSession) -> None:
     """Belt and braces: the derived clues are ours, but they are still checked,
     because a country called Djibouti is also a city called Djibouti."""

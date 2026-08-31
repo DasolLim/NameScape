@@ -364,6 +364,16 @@ async def test_the_puzzle_number_counts_from_the_first_day(db: AsyncSession) -> 
     assert "#142" in grid
 
 
+def test_a_puzzle_before_the_epoch_is_still_number_one() -> None:
+    """A #0 or a #-3 in a grid posted to a group chat is a bug people notice.
+    The epoch is a constant, so a puzzle seeded before it must not underflow.
+    """
+    assert play.puzzle_number(play.EPOCH) == 1
+    assert play.puzzle_number(play.EPOCH - timedelta(days=1)) == 1
+    assert play.puzzle_number(play.EPOCH - timedelta(days=400)) == 1
+    assert play.puzzle_number(play.EPOCH + timedelta(days=141)) == 142
+
+
 async def test_a_completed_attempt_records_when_it_ended(db: AsyncSession) -> None:
     puzzle, place = await a_puzzle(db)
     player = await a_player(db)

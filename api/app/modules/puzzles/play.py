@@ -32,7 +32,8 @@ MAX_GUESSES: Final = 5
 
 #: Day one. The puzzle number in the share grid counts from here, so it has to
 #: be a constant: deriving it from the first row in the table would renumber
-#: every grid anybody had already posted.
+#: every grid anybody had already posted. Set this to the real first puzzle
+#: date before launch.
 EPOCH: Final = date(2026, 9, 1)
 
 _APP_URL: Final = "toponomicon.app"
@@ -114,7 +115,13 @@ class AttemptState:
 
 
 def puzzle_number(day: date) -> int:
-    return (day - EPOCH).days + 1
+    """Which puzzle this is, counting from the epoch.
+
+    Never below one. A puzzle dated before the epoch is a development or
+    seeding artefact, and "#0" in a grid posted to a group chat is the kind of
+    bug people screenshot.
+    """
+    return max(1, (day - EPOCH).days + 1)
 
 
 async def current(session: AsyncSession, on: date) -> Puzzle | None:

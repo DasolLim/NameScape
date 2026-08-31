@@ -60,8 +60,11 @@ _FEATURE_NAMES: Final[dict[str, str]] = {
     "V": "a wood or forest",
 }
 
-#: Rough scale, from population. Deliberately coarse: an exact figure would
-#: narrow the answer far too much for a second clue.
+#: Rough scale, from population, and only for settlements: a population figure
+#: describes a town, not a lake or an island. Great Britain came out of an
+#: early run as "a landform, a large city".
+#: Deliberately coarse: an exact figure would narrow the answer far too much
+#: for a second clue.
 _SCALES: Final = (
     (0, "with almost nobody living there"),
     (1_000, "a village"),
@@ -300,9 +303,14 @@ def clues_for(place: Place, meaning: str) -> list[str]:
     country. The fifth reveal is the pin, which is the place itself.
     """
     entry = _countries()[(place.country_code or "").upper()]
+    feature = _FEATURE_NAMES.get(place.feature_class, "a place")
+    # Scale only for settlements: a population figure describes a town, not a
+    # lake or an island. Great Britain came out of an early run as "a landform,
+    # a large city".
+    scale = f", {_scale(place.population)}" if place.feature_class == "P" else ""
     return [
         meaning,
-        f"It is {_FEATURE_NAMES.get(place.feature_class, 'a place')}, {_scale(place.population)}.",
+        f"It is {feature}{scale}.",
         entry["continent"],
         entry["name"],
     ]
