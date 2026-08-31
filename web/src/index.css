@@ -1,10 +1,60 @@
 @import "tailwindcss";
 
+/* The design system, as tokens rather than arbitrary values repeated per
+   file. Every colour below is from DESIGN.md; nothing here is invented. */
+@theme {
+  /* Ink - surfaces. Elevation comes from this ramp, never from shadows:
+     shadows on near-black are mud. */
+  --color-ink-950: #080b11;
+  --color-ink-900: #0e131c;
+  --color-ink-800: #151c28;
+  --color-ink-700: #1e2735;
+  --color-ink-600: #2b3646;
+  --color-ink-500: #3d4a5c;
+
+  /* Parchment - foreground. Never pure white: harsh at length on near-black,
+     and it loses the paper association. */
+  --color-parchment-50: #f5f1e8;
+  --color-parchment-200: #d6d0c2;
+  --color-parchment-400: #9b9484;
+  --color-parchment-600: #6b665c;
+
+  /* Brass - the brand accent. Discovery, instruments, achievement. */
+  --color-brass-300: #f5c87e;
+  --color-brass-500: #e8a33d;
+  --color-brass-700: #b37a24;
+  --color-brass-900: #4a320f;
+
+  /* Verdigris - secondary. Split-complementary to brass. */
+  --color-verdigris-300: #7dd9c3;
+  --color-verdigris-500: #35a48f;
+  --color-verdigris-700: #1f6b5d;
+  --color-verdigris-900: #0c2b26;
+
+  /* Sealing wax. */
+  --color-wax-500: #c9524e;
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Hairlines read as precision; 1px reads as chunky at this palette. */
+  --radius-control: 0.5rem;
+  --radius-surface: 0.75rem;
+}
+
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-ink-950);
+  color: var(--color-parchment-50);
+  /* Counts, countdowns and tallies must not jitter as they change. */
+  font-variant-numeric: tabular-nums;
 }
 
 @keyframes stamp-drop {
