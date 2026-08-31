@@ -110,3 +110,26 @@ def test_admin_codes_resolve_to_readable_names() -> None:
     # An unknown pair falls back to the raw code rather than blanking it.
     assert regions.name_for(lookup, "GB", "ENG") == "ENG"
     assert regions.name_for(lookup, None, None) is None
+
+
+async def test_a_class_filter_keeps_settlements_and_drops_the_rest(db: AsyncSession) -> None:
+    """Storage, not taste. The US dump alone is 470MB, and 381MB of that is
+    half a million lakes and a quarter million hills that nobody looks up.
+    Importing its populated places keeps Boring, Oregon and fits a free tier.
+    """
+    imported = await import_geonames(db, FIXTURE, feature_classes={"P"})
+
+    rows = (
+        await db.execute(select(Place.feature_class, func.count()).group_by(Place.feature_class))
+    ).all()
+
+    assert imported > 0
+    assert {feature_class for feature_class, _ in rows} == {"P"}
+
+
+async def test_no_filter_imports_everything(db: AsyncSession) -> None:
+    await import_geonames(db, FIXTURE)
+
+    classes = (await db.execute(select(Place.feature_class).distinct())).scalars().all()
+
+    assert len(set(classes)) > 1

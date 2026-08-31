@@ -91,9 +91,19 @@ async def _write(session: AsyncSession, batch: list[dict[str, object]]) -> None:
 
 
 async def import_geonames(
-    session: AsyncSession, dump: Path, admin_names: regions.RegionLookup | None = None
+    session: AsyncSession,
+    dump: Path,
+    admin_names: regions.RegionLookup | None = None,
+    feature_classes: set[str] | None = None,
 ) -> int:
-    """Load a GeoNames dump into places. Idempotent on geonames_id."""
+    """Load a GeoNames dump into places. Idempotent on geonames_id.
+
+    `feature_classes` narrows what is loaded, for storage rather than taste.
+    A full country dump is mostly hydrography and terrain: the US one is 470MB,
+    of which 381MB is half a million lakes and a quarter million hills. Loading
+    only its populated places keeps the names people search for, Boring and
+    Dull among them, and fits inside a free database tier.
+    """
     imported = 0
     batch: list[dict[str, object]] = []
     seen: set[int] = set()
@@ -102,6 +112,8 @@ async def import_geonames(
         for line in handle:
             values = _row_to_values(line.rstrip("\n").split("\t"), admin_names)
             if values is None:
+                continue
+            if feature_classes is not None and values["feature_class"] not in feature_classes:
                 continue
 
             # A batch cannot contain the same conflict target twice.

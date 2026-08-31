@@ -70,16 +70,25 @@ async def admin_names() -> regions.RegionLookup:
 
 
 async def main(names: list[str]) -> None:
+    """Import each named dump.
+
+    A name may carry a feature-class filter, as `US:P`, which loads only that
+    class from that dump. Storage, not taste: a full country dump is mostly
+    hydrography and terrain, and the US one is 470MB of which 381MB is lakes
+    and hills. `US:P` keeps Boring and Dull and fits a free database tier.
+    """
     lookup = await admin_names()
     print(f"admin1 codes: {len(lookup):,} regions")
 
     for name in names:
-        dump = await download(name)
-        print(f"{name}: importing…")
+        dump_name, _, classes = name.partition(":")
+        wanted = set(classes) if classes else None
+        dump = await download(dump_name)
+        print(f"{dump_name}: importing{f' classes {sorted(wanted)}' if wanted else ''}…")
         async with SessionLocal() as session:
-            imported = await import_geonames(session, dump, lookup)
+            imported = await import_geonames(session, dump, lookup, wanted)
             await session.commit()
-        print(f"{name}: imported {imported:,} places")
+        print(f"{dump_name}: imported {imported:,} places")
 
 
 if __name__ == "__main__":
