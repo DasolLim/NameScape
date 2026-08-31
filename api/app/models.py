@@ -32,6 +32,23 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class GuestSession(Base):
+    """An unsigned visitor, good for exactly one claim.
+
+    Kept after the merge rather than deleted, so a claim can be traced back to
+    the session that made it without keeping anything about the visitor.
+    """
+
+    __tablename__ = "guest_sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    merged_into: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    merged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class Place(Base):
     """A gazetteer record. Never user-authored; every discovery anchors to one."""
 
@@ -57,13 +74,24 @@ class Place(Base):
 
 
 class Discovery(Base):
-    """A user's claim on a place. The unique place_id is what makes it scarce."""
+    """A claim on a place. The unique place_id is what makes it scarce.
+
+    The claimant is a user or a guest session, never both and never neither.
+    A database CHECK enforces that, along with the rule that only a guest
+    claim carries an expiry.
+    """
 
     __tablename__ = "discoveries"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     place_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("places.id"), unique=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    claimant_type: Mapped[str] = mapped_column(Text, default="user")
+    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    guest_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("guest_sessions.id")
+    )
+    #: Non-null only for a guest claim. Passing it releases the place.
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     caption: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
