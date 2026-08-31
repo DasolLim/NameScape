@@ -7,18 +7,19 @@ aggregation all live behind these four functions.
 import hashlib
 import secrets
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Final
 from uuid import UUID
 
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from redis.asyncio import Redis
 from sqlalchemy import func, select
+from sqlalchemy import text as sql
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models import Discovery, MagicLink, Place, User
-from app.modules.accounts import delivery, usernames
+from app.modules.accounts import delivery, streak, usernames
 
 MAGIC_LINK_TTL: Final = timedelta(minutes=15)
 MAGIC_LINKS_PER_HOUR: Final = 3
@@ -51,6 +52,10 @@ class Passport:
     countries: dict[str, int]
     #: Share of each country's gazetteer places this user has found, 0..1.
     completion: dict[str, float]
+    #: Consecutive days with a discovery or a vote.
+    streak_days: int
+    #: A live streak with nothing done today.
+    streak_at_risk: bool
 
 
 def _signer() -> URLSafeTimedSerializer:
@@ -163,6 +168,21 @@ async def profile(session: AsyncSession, username: str) -> PublicProfile | None:
     )
 
 
+async def _active_days(session: AsyncSession, user_id: UUID) -> set[date]:
+    """Days this user did something that counts, in UTC."""
+    rows = await session.execute(
+        sql(
+            "SELECT DISTINCT (created_at AT TIME ZONE 'UTC')::date AS day "
+            "FROM discoveries WHERE user_id = :user_id "
+            "UNION "
+            "SELECT DISTINCT (created_at AT TIME ZONE 'UTC')::date "
+            "FROM votes WHERE user_id = :user_id"
+        ),
+        {"user_id": user_id},
+    )
+    return {row[0] for row in rows}
+
+
 async def passport(session: AsyncSession, username: str) -> Passport | None:
     """Stamps by country. Every discovery is a first find; the table enforces it."""
     user = (
@@ -197,6 +217,9 @@ async def passport(session: AsyncSession, username: str) -> Passport | None:
             if code is not None and count:
                 completion[code] = countries[code] / int(count)
 
+    active = await _active_days(session, user.id)
+    today = datetime.now(UTC).date()
+
     return Passport(
         username=user.username,
         discoveries=total,
@@ -205,4 +228,6 @@ async def passport(session: AsyncSession, username: str) -> Passport | None:
         first_finds=total,
         countries=countries,
         completion=completion,
+        streak_days=streak.length(active, today),
+        streak_at_risk=streak.at_risk(active, today),
     )

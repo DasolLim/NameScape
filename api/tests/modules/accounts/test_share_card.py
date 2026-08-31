@@ -16,6 +16,8 @@ def passport(username: str = "collector", discoveries: int = 12) -> Passport:
         first_finds=discoveries,
         countries={"CA": 7, "GB": 5},
         completion={"CA": 0.02, "GB": 0.01},
+        streak_days=7,
+        streak_at_risk=False,
     )
 
 
