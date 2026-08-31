@@ -1,0 +1,36 @@
+# What the platform must not upload.
+#
+# `vercel deploy` uploads the working tree, not the git tree, so anything
+# gitignored still needs listing here. The first attempt shipped 448MB and was
+# refused: 379MB of cached GeoNames dumps, 264MB of node_modules and 253MB of
+# local virtualenv, none of which the build needs.
+
+# Cached gazetteer dumps. Imported from a developer machine, never from a
+# function: 744k rows do not belong in a request.
+api/.geonames/
+
+# Installed during the build, not shipped.
+api/.venv/
+web/node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Built during the build.
+web/dist/
+
+# Tests and their artefacts. Nothing here runs on the platform.
+api/tests/
+web/e2e/
+web/test-results/
+web/playwright-report/
+web/src/**/*.test.ts
+web/src/**/*.test.tsx
+
+# Local only.
+api/.env
+.env.local
+infra/
+docs/
