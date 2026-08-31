@@ -134,6 +134,37 @@ async def test_no_ip_address_reaches_postgres(db: AsyncSession, fake_redis: Fake
     assert not any("127.0.0.1" in key for key in keys)
 
 
+async def test_signing_in_keeps_the_claim_and_clears_the_guest_cookie(
+    client: AsyncClient, db: AsyncSession, fake_redis: FakeRedis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The whole point of the deadline: signing up is how you keep the place."""
+    from app.modules.accounts import delivery
+
+    outbox: list[tuple[str, str]] = []
+
+    async def capture(email: str, token: str) -> None:
+        outbox.append((email, token))
+
+    monkeypatch.setattr(delivery, "send_magic_link", capture)
+    place = await build_place(db)
+
+    claimed = await client.post("/api/discoveries", json={"place_id": place.id, "caption": CAPTION})
+    assert claimed.status_code == 201
+    assert client.cookies.get(GUEST_COOKIE) is not None
+
+    await client.post("/api/auth/magic-link", json={"email": "keeper@example.com"})
+    signed_in = await client.post("/api/auth/session", json={"token": outbox[0][1]})
+
+    assert signed_in.status_code == 200
+    mine = await client.get("/api/discoveries")
+    assert [found["place_id"] for found in mine.json()["discoveries"]] == [place.id]
+
+    kept = (await db.execute(select(Discovery))).scalars().one()
+    assert kept.expires_at is None
+    assert kept.guest_session_id is None
+    assert client.cookies.get(GUEST_COOKIE) is None
+
+
 async def test_a_guest_cannot_vote(client: AsyncClient, db: AsyncSession) -> None:
     response = await client.post("/api/votes", json={"proposal_id": 1, "direction": "up"})
 

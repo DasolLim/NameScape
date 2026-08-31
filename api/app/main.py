@@ -213,11 +213,22 @@ async def request_magic_link(
 
 
 @app.post("/api/auth/session", responses=_errors(401, *WRITE_ERRORS))
-async def create_session(body: SessionRequest, session: SessionDep, response: Response) -> Me:
-    signed_in = await accounts.authenticate(session, body.token)
+async def create_session(
+    body: SessionRequest,
+    session: SessionDep,
+    response: Response,
+    toponomicon_guest: Annotated[str | None, Cookie()] = None,
+) -> Me:
+    # The guest cookie goes in so authenticate() can adopt the claim behind it.
+    signed_in = await accounts.authenticate(session, body.token, toponomicon_guest)
     if signed_in is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     await session.commit()
+
+    if toponomicon_guest is not None:
+        # Spent whether or not it carried a claim, and leaving it would let a
+        # signed-out visitor in this browser inherit somebody's old session.
+        response.delete_cookie(GUEST_COOKIE)
 
     response.set_cookie(
         SESSION_COOKIE,

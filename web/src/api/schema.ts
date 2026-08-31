@@ -771,7 +771,9 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                toponomicon_guest?: string | null;
+            };
         };
         requestBody: {
             content: {
