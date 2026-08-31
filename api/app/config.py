@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     #: Only enable behind a proxy you control: a client can otherwise forge
     #: X-Forwarded-For and get a fresh allowance per request.
     trust_forwarded_for: bool = False
+    #: OpenRouter, for offline work only: etymology resolution and puzzle clue
+    #: drafting. With no key the model tier is skipped, which is a supported
+    #: state - the tiers above it are the citable ones.
+    openrouter_api_key: str = ""
+    #: Confirm the slug against OpenRouter's model list before relying on it.
+    #: Quality matters more than cost here: a few hundred calls a year.
+    openrouter_model: str = "anthropic/claude-opus-5"
+
     #: Claims allowed per address per day without an account. Low on purpose:
     #: a guest claim locks a place for a week and costs nothing to make.
     guest_claims_per_day: int = 3
