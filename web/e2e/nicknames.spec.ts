@@ -57,7 +57,8 @@ test('a nickname renders beneath the official name and can be switched off', asy
   await flyTo(page, 7)
   await screenshot(page, testInfo, 'nickname-collision')
 
-  await page.getByRole('button', { name: /^nicknames$/i }).click()
+  await page.getByRole('button', { name: /^layers/i }).click()
+  await page.getByRole('menuitemcheckbox', { name: /nicknames/i }).click()
   await page.waitForTimeout(1200)
   await screenshot(page, testInfo, 'nickname-hidden')
 
