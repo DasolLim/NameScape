@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import observability
 from app.models import Place
+from app.modules.discoveries import GUEST_FINDER
 from app.modules.gazetteer import backends
 
 #: A suggestion list, not a result page.
@@ -89,7 +90,8 @@ _HYDRATE_SQL = text(
     SELECT p.id, p.geonames_id, p.name, p.feature_class, p.feature_code,
            p.country_code, p.admin1, p.tier,
            ST_Y(p.centroid::geometry) AS lat, ST_X(p.centroid::geometry) AS lon,
-           u.username AS claimed_by
+           CASE WHEN d.id IS NULL THEN NULL
+                ELSE COALESCE(u.username, :guest_finder) END AS claimed_by
     FROM places p
     LEFT JOIN discoveries d ON d.place_id = p.id
     LEFT JOIN users u ON u.id = d.user_id
@@ -144,7 +146,11 @@ async def _trigram_ids(
 
 
 async def _hydrate(session: AsyncSession, geonames_ids: list[int]) -> list[PlaceResult]:
-    rows = (await session.execute(_HYDRATE_SQL, {"ids": geonames_ids})).mappings().all()
+    rows = (
+        (await session.execute(_HYDRATE_SQL, {"ids": geonames_ids, "guest_finder": GUEST_FINDER}))
+        .mappings()
+        .all()
+    )
     by_geonames_id = {
         int(row["geonames_id"]): PlaceResult(
             id=int(row["id"]),

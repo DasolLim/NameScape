@@ -7,7 +7,7 @@ need an account, and each has to say so rather than failing quietly.
 import pytest
 from fakeredis.aioredis import FakeRedis
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache import get_redis
@@ -188,6 +188,37 @@ async def test_a_visitor_who_has_claimed_nothing_gets_an_empty_list(
 
     assert mine.status_code == 200
     assert mine.json()["discoveries"] == []
+
+
+async def test_a_place_a_guest_holds_reports_a_finder(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    place = await build_place(db)
+    await client.post("/api/discoveries", json={"place_id": place.id, "caption": CAPTION})
+
+    detail = (await client.get(f"/api/places/{place.id}")).json()
+
+    assert detail["claimed_by"] is not None
+
+
+async def test_a_guest_is_told_a_place_is_blocked_before_they_write_anything(
+    client: AsyncClient, db: AsyncSession
+) -> None:
+    """Eligibility used to be skipped for anyone not signed in, so a guest saw
+    'allowed' on a memorial and learned otherwise from a 403."""
+    place = await build_place(db)
+    await db.execute(
+        text(
+            "INSERT INTO restricted_zones (geom, rule_type, reason, source) VALUES "
+            "(ST_GeogFromText('SRID=4326;POLYGON((-53.6 47.5,-53.4 47.5,"
+            "-53.4 47.7,-53.6 47.7,-53.6 47.5))'), 'no_nomination', 'A memorial.', 'test')"
+        )
+    )
+
+    detail = (await client.get(f"/api/places/{place.id}")).json()
+
+    assert detail["eligibility"] == "blocked"
+    assert detail["eligibility_reason"] == "A memorial."
 
 
 async def test_a_guest_cannot_vote(client: AsyncClient, db: AsyncSession) -> None:

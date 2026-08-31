@@ -354,21 +354,26 @@ async def read_place(
         if toponomicon_session is None
         else await accounts.authenticate(session, toponomicon_session)
     )
-    # Eligibility depends on the viewer's language, so it is per-request.
-    verdict = (
-        await eligibility.check(session, place_id, signed_in.user_id)
-        if signed_in is not None
-        else eligibility.EligibilityVerdict(eligibility.Eligibility.ALLOWED)
+    # Eligibility depends on the viewer's language, so it is per-request. It is
+    # checked for a guest too: skipping it showed "allowed" on a memorial and
+    # let them write a caption before a 403 said otherwise.
+    verdict = await eligibility.check(
+        session, place_id, signed_in.user_id if signed_in is not None else None
     )
 
     row = (
         await session.execute(
             text(
-                "SELECT u.username, ST_X(p.centroid::geometry), ST_Y(p.centroid::geometry) "
+                # A guest claim has no user to name, but the place is taken all
+                # the same, and reporting it free offers a claim that can only
+                # conflict.
+                "SELECT CASE WHEN d.id IS NULL THEN NULL "
+                "            ELSE COALESCE(u.username, :guest_finder) END, "
+                "       ST_X(p.centroid::geometry), ST_Y(p.centroid::geometry) "
                 "FROM places p LEFT JOIN discoveries d ON d.place_id = p.id "
                 "LEFT JOIN users u ON u.id = d.user_id WHERE p.id = :id"
             ),
-            {"id": place_id},
+            {"id": place_id, "guest_finder": discoveries.GUEST_FINDER},
         )
     ).one()
 

@@ -201,6 +201,20 @@ async def test_a_user_claim_reads_back_with_no_deadline(db: AsyncSession) -> Non
     assert mine[0].expires_at is None
 
 
+async def test_a_guest_held_place_does_not_read_as_unclaimed(db: AsyncSession) -> None:
+    """Search joins claims to users, and a guest claim has no user. Reporting
+    it as free offers a claim button that can only ever conflict."""
+    from app.modules import gazetteer
+
+    place = await build_place(db)
+    guest = await build_guest_session(db)
+    await discoveries.claim(db, place.id, discoveries.GuestClaimant(guest.id), CAPTION)
+
+    found = await gazetteer.search(db, "Dildo")
+
+    assert [result.claimed_by for result in found] == [service.GUEST_FINDER]
+
+
 async def test_a_guest_and_a_user_racing_for_one_place_leave_a_single_claim(
     test_database: str,
 ) -> None:
