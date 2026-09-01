@@ -13,7 +13,7 @@ test('renders the app and reports both services healthy, with no console errors'
 
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: 'Toponomicon' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'NameScape' })).toBeVisible()
   // Healthy is the unremarkable case, so the chrome says nothing about it.
   await expect(page.getByTestId('health')).toHaveText('')
 

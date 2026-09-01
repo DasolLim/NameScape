@@ -31,7 +31,7 @@ async def client(db: AsyncSession, fake_redis: FakeRedis) -> AsyncClient:
 
 
 def sign_in(client: AsyncClient, user: User) -> None:
-    client.cookies.set("toponomicon_session", accounts_service._session_for(user).cookie)
+    client.cookies.set("namescape_session", accounts_service._session_for(user).cookie)
 
 
 async def settled_voter(session: AsyncSession, username: str) -> User:

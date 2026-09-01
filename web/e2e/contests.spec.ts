@@ -14,7 +14,7 @@ function sessionFor(username: string): string {
 async function signIn(context: import('@playwright/test').BrowserContext, username: string) {
   await context.clearCookies()
   await context.addCookies([
-    { name: 'toponomicon_session', value: sessionFor(username), domain: 'localhost', path: '/' },
+    { name: 'namescape_session', value: sessionFor(username), domain: 'localhost', path: '/' },
   ])
 }
 

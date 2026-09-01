@@ -23,6 +23,7 @@ from sqlalchemy import select
 from sqlalchemy import text as sql
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models import Place, Puzzle, PuzzleAttempt, Streak
 from app.modules.discoveries import Claimant, UserClaimant
 from app.modules.puzzles import geo
@@ -36,7 +37,15 @@ MAX_GUESSES: Final = 5
 #: date before launch.
 EPOCH: Final = date(2026, 9, 1)
 
-_APP_URL: Final = "toponomicon.app"
+
+def _app_host() -> str:
+    """Where the grid tells people to go.
+
+    Derived from the configured base URL rather than hardcoded: it used to name
+    a domain nobody had registered, so every grid anybody posted pointed at
+    nothing at all.
+    """
+    return settings.app_base_url.split("//")[-1].rstrip("/")
 
 
 class AttemptCompleteError(Exception):
@@ -245,7 +254,7 @@ def share_grid(state_number: int, guesses: list[Guess], solved: bool, streak: in
     the country and the coordinates are simply never among the ingredients.
     """
     score = f"{len(guesses)}/{MAX_GUESSES}" if solved else f"X/{MAX_GUESSES}"
-    header = f"Toponomicon #{state_number} · {score}"
+    header = f"NameScape #{state_number} · {score}"
     if streak > 0:
         header += f" · 🔥{streak}"
 
@@ -253,7 +262,7 @@ def share_grid(state_number: int, guesses: list[Guess], solved: bool, streak: in
         guess.band.marker if guess.band is geo.Band.CORRECT else f"{guess.band.marker}{guess.arrow}"
         for guess in guesses
     )
-    return f"{header}\n{rows}\n\n{_APP_URL}"
+    return f"{header}\n{rows}\n\n{_app_host()}"
 
 
 def _guess_from(entry: object) -> Guess | None:

@@ -36,10 +36,10 @@ async def test_metrics_expose_the_numbers_the_runbook_needs(client: AsyncClient)
     body = (await client.get("/metrics")).text
 
     for metric in (
-        "toponomicon_search_seconds",
-        "toponomicon_viewport_cache_total",
-        "toponomicon_contests_resolved_total",
-        "toponomicon_moderation_rejected_total",
+        "namescape_search_seconds",
+        "namescape_viewport_cache_total",
+        "namescape_contests_resolved_total",
+        "namescape_moderation_rejected_total",
     ):
         assert metric in body
 

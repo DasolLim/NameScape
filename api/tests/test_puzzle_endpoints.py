@@ -21,7 +21,7 @@ from app.modules.accounts import service as accounts_service
 from tests.factories import build_place, build_user
 
 TODAY = datetime.now(UTC).date()
-GUEST_COOKIE = "toponomicon_guest"
+GUEST_COOKIE = "namescape_guest"
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ async def a_puzzle(
 
 async def sign_in(client: AsyncClient, db: AsyncSession, username: str = "player") -> None:
     user = await build_user(db, username=username)
-    client.cookies.set("toponomicon_session", accounts_service._session_for(user).cookie)
+    client.cookies.set("namescape_session", accounts_service._session_for(user).cookie)
 
 
 async def test_the_puzzle_opens_with_one_clue_and_nothing_else(

@@ -58,7 +58,7 @@ async def test_bookmarks_come_back_only_for_a_signed_in_viewer(
     await db.flush()
 
     anonymous = (await client.get("/api/viewport", params={**BOUNDS, "zoom": 12})).json()
-    client.cookies.set("toponomicon_session", accounts_service._session_for(viewer).cookie)
+    client.cookies.set("namescape_session", accounts_service._session_for(viewer).cookie)
     signed_in = (await client.get("/api/viewport", params={**BOUNDS, "zoom": 12})).json()
 
     assert anonymous["bookmarks"] == []

@@ -171,7 +171,7 @@ test('solving reveals the place, and offers to claim it when nobody has', async 
         solved: true,
         complete: true,
         answer: ANSWER,
-        share_grid: 'Toponomicon #142 · 1/5\n🟩\n\ntoponomicon.app',
+        share_grid: 'NameScape #142 · 1/5\n🟩\n\nnamescape.app',
       })}
     />,
   )
@@ -200,7 +200,7 @@ test('a place somebody already found is named, not offered', async () => {
 })
 
 test('the share button copies the grid', async () => {
-  const grid = 'Toponomicon #142 · 1/5\n🟩\n\ntoponomicon.app'
+  const grid = 'NameScape #142 · 1/5\n🟩\n\nnamescape.app'
   const writeText = vi.fn(() => Promise.resolve())
   const user = userEvent.setup()
   // After setup, which installs a clipboard stub of its own, and defined
@@ -233,7 +233,7 @@ test('a failed attempt shows the answer without pretending it was solved', async
         complete: true,
         remaining: 0,
         answer: ANSWER,
-        share_grid: 'Toponomicon #142 · X/5\n⬜⬜⬜⬜⬜\n\ntoponomicon.app',
+        share_grid: 'NameScape #142 · X/5\n⬜⬜⬜⬜⬜\n\nnamescape.app',
       })}
     />,
   )

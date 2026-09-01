@@ -1472,6 +1472,79 @@ wheels = [
 ]
 
 [[package]]
+name = "namescape-api"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "aiosmtplib" },
+    { name = "alembic" },
+    { name = "apscheduler" },
+    { name = "asyncpg" },
+    { name = "fastapi" },
+    { name = "geoalchemy2" },
+    { name = "httpx" },
+    { name = "itsdangerous" },
+    { name = "pillow" },
+    { name = "prometheus-client" },
+    { name = "pydantic", extra = ["email"] },
+    { name = "pydantic-settings" },
+    { name = "pyyaml" },
+    { name = "redis" },
+    { name = "sentry-sdk" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "types-pyyaml" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "fakeredis" },
+    { name = "hypothesis" },
+    { name = "locust" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "schemathesis" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiosmtplib", specifier = ">=5.1.2" },
+    { name = "alembic" },
+    { name = "apscheduler", specifier = ">=3.11.3" },
+    { name = "asyncpg" },
+    { name = "fastapi" },
+    { name = "geoalchemy2", specifier = ">=0.20.0" },
+    { name = "httpx" },
+    { name = "itsdangerous", specifier = ">=2.2.0" },
+    { name = "pillow", specifier = ">=12.3.0" },
+    { name = "prometheus-client", specifier = ">=0.26.0" },
+    { name = "pydantic", extras = ["email"], specifier = ">=2.13.5" },
+    { name = "pydantic-settings" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "redis" },
+    { name = "sentry-sdk", specifier = ">=2.68.1" },
+    { name = "sqlalchemy", extras = ["asyncio"] },
+    { name = "types-pyyaml", specifier = ">=6.0.12.20260815" },
+    { name = "uvicorn", extras = ["standard"] },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "fakeredis", specifier = ">=2.37.1" },
+    { name = "hypothesis", specifier = ">=6.165.10" },
+    { name = "locust", specifier = ">=2.46.4" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov", specifier = ">=7.1.0" },
+    { name = "ruff" },
+    { name = "schemathesis", specifier = ">=4.25.2" },
+]
+
+[[package]]
 name = "packaging"
 version = "26.3"
 source = { registry = "https://pypi.org/simple" }
@@ -2122,79 +2195,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/cd/64/6debec8fc6e9abde0c7042145dc27a562bd1cd79350a55b80bf612a10ccb/starlette_testclient-0.4.1.tar.gz", hash = "sha256:9e993ffe12fab45606116257813986612262fe15c1bb6dc9e39cc68693ac1fc5", size = 12480, upload-time = "2024-04-29T10:54:28.503Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/25/44/f5209b889a344b1331a103aec4e9f906c7f67f9295fd287fdaa818179d95/starlette_testclient-0.4.1-py3-none-any.whl", hash = "sha256:dcf0eb237dc47f062ef5925f98330af46f67e547cb587119c9ae78c17ae6c1d1", size = 8143, upload-time = "2024-04-29T10:54:25.728Z" },
-]
-
-[[package]]
-name = "toponomicon-api"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "aiosmtplib" },
-    { name = "alembic" },
-    { name = "apscheduler" },
-    { name = "asyncpg" },
-    { name = "fastapi" },
-    { name = "geoalchemy2" },
-    { name = "httpx" },
-    { name = "itsdangerous" },
-    { name = "pillow" },
-    { name = "prometheus-client" },
-    { name = "pydantic", extra = ["email"] },
-    { name = "pydantic-settings" },
-    { name = "pyyaml" },
-    { name = "redis" },
-    { name = "sentry-sdk" },
-    { name = "sqlalchemy", extra = ["asyncio"] },
-    { name = "types-pyyaml" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "fakeredis" },
-    { name = "hypothesis" },
-    { name = "locust" },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "schemathesis" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiosmtplib", specifier = ">=5.1.2" },
-    { name = "alembic" },
-    { name = "apscheduler", specifier = ">=3.11.3" },
-    { name = "asyncpg" },
-    { name = "fastapi" },
-    { name = "geoalchemy2", specifier = ">=0.20.0" },
-    { name = "httpx" },
-    { name = "itsdangerous", specifier = ">=2.2.0" },
-    { name = "pillow", specifier = ">=12.3.0" },
-    { name = "prometheus-client", specifier = ">=0.26.0" },
-    { name = "pydantic", extras = ["email"], specifier = ">=2.13.5" },
-    { name = "pydantic-settings" },
-    { name = "pyyaml", specifier = ">=6.0.3" },
-    { name = "redis" },
-    { name = "sentry-sdk", specifier = ">=2.68.1" },
-    { name = "sqlalchemy", extras = ["asyncio"] },
-    { name = "types-pyyaml", specifier = ">=6.0.12.20260815" },
-    { name = "uvicorn", extras = ["standard"] },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "fakeredis", specifier = ">=2.37.1" },
-    { name = "hypothesis", specifier = ">=6.165.10" },
-    { name = "locust", specifier = ">=2.46.4" },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov", specifier = ">=7.1.0" },
-    { name = "ruff" },
-    { name = "schemathesis", specifier = ">=4.25.2" },
 ]
 
 [[package]]

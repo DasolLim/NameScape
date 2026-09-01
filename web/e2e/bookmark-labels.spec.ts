@@ -18,7 +18,7 @@ test('a bookmarked place is named on the globe, not just dotted', async ({
   // @voter, not @demo: the bookmarks spec clears @demo's saves and the two
   // run in parallel.
   await context.addCookies([
-    { name: 'toponomicon_session', value: sessionFor('voter'), domain: 'localhost', path: '/' },
+    { name: 'namescape_session', value: sessionFor('voter'), domain: 'localhost', path: '/' },
   ])
 
   await page.goto('/')

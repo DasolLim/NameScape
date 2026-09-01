@@ -51,7 +51,7 @@ def render(passport: Passport) -> bytes:
 
     draw.rectangle([(0, 0), (WIDTH, 8)], fill=BRASS_500)
 
-    draw.text((72, 92), "TOPONOMICON", font=label_font, fill=PARCHMENT_400)
+    draw.text((72, 92), "NAMESCAPE", font=label_font, fill=PARCHMENT_400)
     draw.text(
         (72, 140),
         f"@{fit(passport.username, HANDLE_MAX_CHARS)}",

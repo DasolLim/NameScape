@@ -35,3 +35,4 @@ api/.geonames/
 .vercel/
 # Pulled by `vercel env pull`. The committed template is api/.env.example.
 .env.local
+.env*

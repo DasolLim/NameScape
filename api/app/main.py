@@ -47,7 +47,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             running.shutdown(wait=False)
 
 
-app = FastAPI(title="Toponomicon API", lifespan=lifespan)
+app = FastAPI(title="NameScape API", lifespan=lifespan)
 
 
 logger = logging.getLogger(__name__)
@@ -194,10 +194,10 @@ MAX_BIGINT: Final = 2**63 - 1
 PlaceId = Annotated[int, Path(ge=1, le=MAX_BIGINT)]
 
 
-SESSION_COOKIE = "toponomicon_session"
+SESSION_COOKIE = "namescape_session"
 #: A guest's provisional identity. Separate from the session cookie so signing
 #: in never has to think about clearing it.
-GUEST_COOKIE = "toponomicon_guest"
+GUEST_COOKIE = "namescape_guest"
 RedisDep = Annotated[Redis, Depends(get_redis)]
 
 
@@ -247,15 +247,15 @@ async def create_session(
     body: SessionRequest,
     session: SessionDep,
     response: Response,
-    toponomicon_guest: Annotated[str | None, Cookie()] = None,
+    namescape_guest: Annotated[str | None, Cookie()] = None,
 ) -> Me:
     # The guest cookie goes in so authenticate() can adopt the claim behind it.
-    signed_in = await accounts.authenticate(session, body.token, toponomicon_guest)
+    signed_in = await accounts.authenticate(session, body.token, namescape_guest)
     if signed_in is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     await session.commit()
 
-    if toponomicon_guest is not None:
+    if namescape_guest is not None:
         # Spent whether or not it carried a claim, and leaving it would let a
         # signed-out visitor in this browser inherit somebody's old session.
         response.delete_cookie(GUEST_COOKIE)
@@ -273,11 +273,11 @@ async def create_session(
 
 @app.get("/api/auth/me")
 async def read_me(
-    session: SessionDep, toponomicon_session: Annotated[str | None, Cookie()] = None
+    session: SessionDep, namescape_session: Annotated[str | None, Cookie()] = None
 ) -> Me | None:
-    if toponomicon_session is None:
+    if namescape_session is None:
         return None
-    signed_in = await accounts.authenticate(session, toponomicon_session)
+    signed_in = await accounts.authenticate(session, namescape_session)
     return None if signed_in is None else Me(username=signed_in.username)
 
 
@@ -368,9 +368,9 @@ async def _signed_in_user(session: AsyncSession, cookie: str | None) -> User | N
 
 
 async def _current_user(
-    session: SessionDep, toponomicon_session: Annotated[str | None, Cookie()] = None
+    session: SessionDep, namescape_session: Annotated[str | None, Cookie()] = None
 ) -> User:
-    user = await _signed_in_user(session, toponomicon_session)
+    user = await _signed_in_user(session, namescape_session)
     if user is None:
         raise HTTPException(status_code=401, detail="Sign in to do that")
     return user
@@ -383,7 +383,7 @@ CurrentUser = Annotated[User, Depends(_current_user)]
 async def read_place(
     place_id: PlaceId,
     session: SessionDep,
-    toponomicon_session: Annotated[str | None, Cookie()] = None,
+    namescape_session: Annotated[str | None, Cookie()] = None,
 ) -> PlaceDetail:
     place = await session.get(Place, place_id)
     if place is None:
@@ -391,8 +391,8 @@ async def read_place(
 
     signed_in = (
         None
-        if toponomicon_session is None
-        else await accounts.authenticate(session, toponomicon_session)
+        if namescape_session is None
+        else await accounts.authenticate(session, namescape_session)
     )
     # Eligibility depends on the viewer's language, so it is per-request. It is
     # checked for a guest too: skipping it showed "allowed" on a memorial and
@@ -504,8 +504,8 @@ class UserDiscoveriesResponse(BaseModel):
 @app.get("/api/discoveries")
 async def read_my_discoveries(
     session: SessionDep,
-    toponomicon_session: Annotated[str | None, Cookie()] = None,
-    toponomicon_guest: Annotated[str | None, Cookie()] = None,
+    namescape_session: Annotated[str | None, Cookie()] = None,
+    namescape_guest: Annotated[str | None, Cookie()] = None,
 ) -> UserDiscoveriesResponse:
     """Whatever the caller has claimed, account or not.
 
@@ -514,12 +514,12 @@ async def read_my_discoveries(
     claim control instead of offering a second one. Not a 401 either way -
     a visitor who has claimed nothing has claimed nothing.
     """
-    user = await _signed_in_user(session, toponomicon_session)
+    user = await _signed_in_user(session, namescape_session)
     claimant: discoveries.Claimant | None
     if user is not None:
         claimant = discoveries.UserClaimant(user.id)
     else:
-        guest_id = guests.identify(toponomicon_guest)
+        guest_id = guests.identify(namescape_guest)
         claimant = None if guest_id is None else discoveries.GuestClaimant(guest_id)
 
     found = [] if claimant is None else await discoveries.for_user(session, claimant)
@@ -559,11 +559,11 @@ async def create_discovery(
     response: Response,
     session: SessionDep,
     redis: RedisDep,
-    toponomicon_session: Annotated[str | None, Cookie()] = None,
-    toponomicon_guest: Annotated[str | None, Cookie()] = None,
+    namescape_session: Annotated[str | None, Cookie()] = None,
+    namescape_guest: Annotated[str | None, Cookie()] = None,
 ) -> DiscoveryResponse:
     """Claiming is the one write that does not require an account."""
-    user = await _signed_in_user(session, toponomicon_session)
+    user = await _signed_in_user(session, namescape_session)
 
     claimant: discoveries.Claimant
     guest: guests.Guest | None = None
@@ -574,7 +574,7 @@ async def create_discovery(
         await _spend_guest_allowance(request, redis)
         # Written in the claim's own transaction, so a claim that fails does
         # not leave a session behind for a cookie to point at.
-        guest = await guests.resolve(session, toponomicon_guest)
+        guest = await guests.resolve(session, namescape_guest)
         claimant = discoveries.GuestClaimant(guest.id)
         finder = discoveries.GUEST_FINDER
 
@@ -731,15 +731,15 @@ async def _existing_player(
 @app.get("/api/puzzle")
 async def read_puzzle(
     session: SessionDep,
-    toponomicon_session: Annotated[str | None, Cookie()] = None,
-    toponomicon_guest: Annotated[str | None, Cookie()] = None,
+    namescape_session: Annotated[str | None, Cookie()] = None,
+    namescape_guest: Annotated[str | None, Cookie()] = None,
 ) -> PuzzleStateResponse | None:
     """Today's puzzle and this player's progress. Null on a day without one."""
     puzzle = await puzzles.today(session)
     if puzzle is None:
         return None
 
-    player = await _existing_player(session, toponomicon_session, toponomicon_guest)
+    player = await _existing_player(session, namescape_session, namescape_guest)
     if player is None:
         # Nobody to look up, so nothing has been earned: the opening state.
         return PuzzleStateResponse(
@@ -765,17 +765,17 @@ async def guess_puzzle(
     body: GuessRequest,
     response: Response,
     session: SessionDep,
-    toponomicon_session: Annotated[str | None, Cookie()] = None,
-    toponomicon_guest: Annotated[str | None, Cookie()] = None,
+    namescape_session: Annotated[str | None, Cookie()] = None,
+    namescape_guest: Annotated[str | None, Cookie()] = None,
 ) -> PuzzleStateResponse:
     """Guess, and hear how close it came. No account needed to play."""
-    user = await _signed_in_user(session, toponomicon_session)
+    user = await _signed_in_user(session, namescape_session)
     guest: guests.Guest | None = None
     if user is not None:
         player: discoveries.Claimant = discoveries.UserClaimant(user.id)
     else:
         # Guessing is the first moment there is anything to remember.
-        guest = await guests.resolve(session, toponomicon_guest)
+        guest = await guests.resolve(session, namescape_guest)
         player = discoveries.GuestClaimant(guest.id)
 
     try:
@@ -804,7 +804,7 @@ async def guess_puzzle(
 
 @app.get("/api/puzzle/archive", responses=_errors(401))
 async def read_puzzle_archive(
-    session: SessionDep, toponomicon_session: Annotated[str | None, Cookie()] = None
+    session: SessionDep, namescape_session: Annotated[str | None, Cookie()] = None
 ) -> ArchiveResponse:
     """Puzzles that have been and gone, and how they went.
 
@@ -812,7 +812,7 @@ async def read_puzzle_archive(
     reading ahead. The refusal says what an account is for here rather than
     the generic "sign in", because the archive is a reason to have one.
     """
-    user = await _signed_in_user(session, toponomicon_session)
+    user = await _signed_in_user(session, namescape_session)
     if user is None:
         raise HTTPException(
             status_code=401,
@@ -862,15 +862,25 @@ _CRON_JOBS: Final = {
 }
 
 
-@app.api_route("/api/cron/{job}", methods=["GET", "POST"], responses=_errors(401, 404))
+@app.get("/api/cron/{job}", responses=_errors(401, 404))
+async def run_scheduled_job_get(
+    job: str, request: Request, session: SessionDep, redis: RedisDep
+) -> CronResult:
+    """Vercel's scheduler invokes with GET. See run_scheduled_job."""
+    return await run_scheduled_job(job, request, session, redis)
+
+
+@app.post("/api/cron/{job}", responses=_errors(401, 404))
 async def run_scheduled_job(
     job: str, request: Request, session: SessionDep, redis: RedisDep
 ) -> CronResult:
     """Run one scheduled job. For platforms with no long-running process.
 
-    GET as well as POST, because Vercel's scheduler invokes with GET and does
-    not follow redirects: a POST-only endpoint would deploy cleanly and never
-    run once.
+    Declared for GET as well, because Vercel's scheduler invokes with GET and
+    does not follow redirects: POST alone would deploy cleanly and never run
+    once. Two endpoints rather than one multi-method route, because FastAPI
+    gives both methods of a multi-method route the same operation id, and the
+    generated frontend types then fail to compile on a duplicate identifier.
 
     Also the way to force a job by hand, which is what makes a plan with
     once-a-day cron usable: a contest can be resolved on demand rather than
@@ -919,12 +929,12 @@ async def read_viewport(
     east: Annotated[float, Query(ge=-180, le=180)],
     north: Annotated[float, Query(ge=-90, le=90)],
     zoom: Annotated[int, Query(ge=0, le=22)],
-    toponomicon_session: Annotated[str | None, Cookie()] = None,
+    namescape_session: Annotated[str | None, Cookie()] = None,
 ) -> ViewportResponse:
     signed_in = (
         None
-        if toponomicon_session is None
-        else await accounts.authenticate(session, toponomicon_session)
+        if namescape_session is None
+        else await accounts.authenticate(session, namescape_session)
     )
     data = await viewport.query(
         session,
@@ -1050,13 +1060,13 @@ async def cast_vote(body: VoteRequest, session: SessionDep, user: CurrentUser) -
 async def read_contest(
     place_id: PlaceId,
     session: SessionDep,
-    toponomicon_session: Annotated[str | None, Cookie()] = None,
+    namescape_session: Annotated[str | None, Cookie()] = None,
 ) -> ContestBoard:
     state = await contests.state_for(session, place_id)
     signed_in = (
         None
-        if toponomicon_session is None
-        else await accounts.authenticate(session, toponomicon_session)
+        if namescape_session is None
+        else await accounts.authenticate(session, namescape_session)
     )
     yours: set[int] = set()
     if signed_in is not None:
@@ -1088,12 +1098,12 @@ class ActivityResponse(BaseModel):
 @app.get("/api/activity")
 async def read_activity(
     session: SessionDep,
-    toponomicon_session: Annotated[str | None, Cookie()] = None,
+    namescape_session: Annotated[str | None, Cookie()] = None,
 ) -> ActivityResponse:
     signed_in = (
         None
-        if toponomicon_session is None
-        else await accounts.authenticate(session, toponomicon_session)
+        if namescape_session is None
+        else await accounts.authenticate(session, namescape_session)
     )
 
     streak_days: int | None = None

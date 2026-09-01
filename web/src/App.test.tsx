@@ -33,7 +33,7 @@ beforeEach(() => {
 test('the chrome names the product rather than reporting the database', async () => {
   render(<App />)
 
-  expect(await screen.findByText('Toponomicon')).toBeVisible()
+  expect(await screen.findByText('NameScape')).toBeVisible()
   expect(screen.getByText(/atlas of absurd place names/i)).toBeVisible()
   // A health readout is operator information, not the product's subtitle.
   expect(screen.queryByText(/redis/i)).not.toBeInTheDocument()

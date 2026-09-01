@@ -59,7 +59,7 @@ class Passport:
 
 
 def _signer() -> URLSafeTimedSerializer:
-    return URLSafeTimedSerializer(settings.secret_key, salt="toponomicon-session")
+    return URLSafeTimedSerializer(settings.secret_key, salt="namescape-session")
 
 
 def _digest(token: str) -> str:

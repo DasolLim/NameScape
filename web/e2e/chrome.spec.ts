@@ -36,7 +36,7 @@ test('the chrome is a solid bar above the globe, legible over any basemap', asyn
 
   const bar = page.getByRole('banner')
   await expect(bar).toBeVisible()
-  await expect(bar.getByText('Toponomicon')).toBeVisible()
+  await expect(bar.getByText('NameScape')).toBeVisible()
 
   // The bar is opaque: its legibility cannot depend on what is under it,
   // which is the whole point of moving off the overlay.
@@ -63,7 +63,7 @@ test('a visitor who has been finding places sees their streak', async ({
   context,
 }, testInfo) => {
   await context.addCookies([
-    { name: 'toponomicon_session', value: sessionFor('demo'), domain: 'localhost', path: '/' },
+    { name: 'namescape_session', value: sessionFor('demo'), domain: 'localhost', path: '/' },
   ])
   await page.goto('/')
 
@@ -79,7 +79,7 @@ test('a visitor with nothing to their name is shown no streak, not a zero', asyn
 }, testInfo) => {
   await context.addCookies([
     {
-      name: 'toponomicon_session',
+      name: 'namescape_session',
       value: sessionFor('unknownderek34'),
       domain: 'localhost',
       path: '/',

@@ -44,7 +44,7 @@ test('it is a solid bar, not text floating on the map', () => {
 test('the wordmark says what the product is, not whether the database is up', () => {
   renderBar()
 
-  expect(screen.getByText('Toponomicon')).toBeVisible()
+  expect(screen.getByText('NameScape')).toBeVisible()
   expect(screen.getByText(/atlas of absurd place names/i)).toBeVisible()
   expect(screen.queryByText(/redis/i)).not.toBeInTheDocument()
 })

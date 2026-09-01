@@ -18,23 +18,23 @@ from app.config import settings
 REGISTRY: Final = CollectorRegistry()
 
 search_seconds: Final = Histogram(
-    "toponomicon_search_seconds",
+    "namescape_search_seconds",
     "Time spent answering a gazetteer search.",
     registry=REGISTRY,
 )
 viewport_cache_total: Final = Counter(
-    "toponomicon_viewport_cache_total",
+    "namescape_viewport_cache_total",
     "Viewport lookups by cache outcome.",
     ["outcome"],
     registry=REGISTRY,
 )
 contests_resolved_total: Final = Counter(
-    "toponomicon_contests_resolved_total",
+    "namescape_contests_resolved_total",
     "Contests closed by the scheduler.",
     registry=REGISTRY,
 )
 moderation_rejected_total: Final = Counter(
-    "toponomicon_moderation_rejected_total",
+    "namescape_moderation_rejected_total",
     "Submissions refused by moderation.",
     registry=REGISTRY,
 )
@@ -51,7 +51,7 @@ def new_request_id(supplied: str | None) -> str:
 def cache_events(outcome: str) -> float:
     """Current count for one cache outcome. Used by tests and the runbook."""
     for metric in REGISTRY.collect():
-        if metric.name != "toponomicon_viewport_cache":
+        if metric.name != "namescape_viewport_cache":
             continue
         for sample in metric.samples:
             if sample.labels.get("outcome") == outcome and sample.name.endswith("_total"):

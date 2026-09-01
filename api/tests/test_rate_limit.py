@@ -58,7 +58,7 @@ async def test_a_flood_of_writes_is_refused_with_429(
     user = await build_user(db, username="flooder")
     from app.modules.accounts import service as accounts_service
 
-    client.cookies.set("toponomicon_session", accounts_service._session_for(user).cookie)
+    client.cookies.set("namescape_session", accounts_service._session_for(user).cookie)
 
     statuses = []
     for index in range(settings.writes_per_minute + 3):
@@ -89,7 +89,7 @@ async def test_no_raw_address_reaches_redis(
     user = await build_user(db, username="one")
     from app.modules.accounts import service as accounts_service
 
-    client.cookies.set("toponomicon_session", accounts_service._session_for(user).cookie)
+    client.cookies.set("namescape_session", accounts_service._session_for(user).cookie)
     await client.post(f"/api/bookmarks/{place.id}")
 
     keys = [

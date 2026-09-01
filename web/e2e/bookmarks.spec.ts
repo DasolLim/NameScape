@@ -13,7 +13,7 @@ function devSessionCookie(): string {
 test('a bookmark saves in one tap and survives a reload', async ({ page, context }) => {
   await context.addCookies([
     {
-      name: 'toponomicon_session',
+      name: 'namescape_session',
       value: devSessionCookie(),
       domain: 'localhost',
       path: '/',

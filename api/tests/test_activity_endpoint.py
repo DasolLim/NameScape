@@ -22,7 +22,7 @@ async def client(db: AsyncSession, fake_redis: FakeRedis) -> AsyncClient:
 
 
 def sign_in(client: AsyncClient, user: User) -> None:
-    client.cookies.set("toponomicon_session", accounts_service._session_for(user).cookie)
+    client.cookies.set("namescape_session", accounts_service._session_for(user).cookie)
 
 
 async def test_an_anonymous_visitor_gets_contest_activity_but_no_streak(

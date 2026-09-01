@@ -1,7 +1,7 @@
 [project]
-name = "toponomicon-api"
+name = "namescape-api"
 version = "0.1.0"
-description = "Toponomicon API"
+description = "NameScape API"
 # Upper bound removed: Vercel's Python runtime is 3.13/3.14.
 requires-python = ">=3.12"
 dependencies = [

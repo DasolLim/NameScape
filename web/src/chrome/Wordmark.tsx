@@ -10,7 +10,7 @@ export default function Wordmark() {
         ✦
       </span>
       <span className="truncate font-display text-lg leading-none text-parchment-50 sm:text-xl">
-        Toponomicon
+        NameScape
       </span>
       <span className="hidden whitespace-nowrap text-xs leading-none text-parchment-400 lg:inline">
         the atlas of absurd place names

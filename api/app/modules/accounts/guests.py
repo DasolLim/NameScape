@@ -29,7 +29,7 @@ class Guest:
 
 
 def _signer() -> URLSafeTimedSerializer:
-    return URLSafeTimedSerializer(settings.secret_key, salt="toponomicon-guest")
+    return URLSafeTimedSerializer(settings.secret_key, salt="namescape-guest")
 
 
 def cookie_for(guest_id: UUID) -> str:

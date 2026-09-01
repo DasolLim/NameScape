@@ -18,7 +18,7 @@ from app.modules.moderation import classifier
 from tests.factories import build_place
 
 CAPTION = "A real place, and the name is real too."
-GUEST_COOKIE = "toponomicon_guest"
+GUEST_COOKIE = "namescape_guest"
 
 
 @pytest.fixture(autouse=True)
@@ -72,7 +72,7 @@ async def test_a_signed_in_claim_is_unchanged_and_has_no_deadline(
 
     place = await build_place(db)
     user = await build_user(db, username="finder")
-    client.cookies.set("toponomicon_session", accounts_service._session_for(user).cookie)
+    client.cookies.set("namescape_session", accounts_service._session_for(user).cookie)
 
     response = await client.post(
         "/api/discoveries", json={"place_id": place.id, "caption": CAPTION}

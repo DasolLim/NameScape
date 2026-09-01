@@ -16,7 +16,7 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-SUBJECT: Final = "Your Toponomicon sign-in link"
+SUBJECT: Final = "Your NameScape sign-in link"
 EXPIRY_NOTE: Final = "The link works once and expires in 15 minutes."
 
 
@@ -32,13 +32,13 @@ def build_message(email: str, token: str) -> EmailMessage:
     message["From"] = settings.smtp_from
     message["To"] = email
     message.set_content(
-        f"Sign in to Toponomicon:\n\n{link}\n\n"
+        f"Sign in to NameScape:\n\n{link}\n\n"
         f"{EXPIRY_NOTE}\n\n"
         "If you did not ask for this, ignore it - nothing has changed."
     )
     message.add_alternative(
         f"""<html><body style="font-family:system-ui;color:#0E131C">
-        <p>Sign in to <strong>Toponomicon</strong>:</p>
+        <p>Sign in to <strong>NameScape</strong>:</p>
         <p><a href="{link}"
               style="background:#E8A33D;color:#4A320F;padding:12px 20px;
                      border-radius:8px;text-decoration:none;display:inline-block">

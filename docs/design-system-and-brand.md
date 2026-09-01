@@ -261,10 +261,10 @@ Absurdia is a placeholder. Alternatives worth testing:
 
 | Name | Note |
 |---|---|
-| **Toponomicon** | Technically precise, memorable, slightly nerdy — arguably a feature |
+| **NameScape** | Technically precise, memorable, slightly nerdy — arguably a feature |
 | **Oddnames** | Plain, clear, easy to say, probably taken |
 | **Nomen** | Short, ownable, international, less descriptive |
 | **The Odd Atlas** | Descriptive and warm; sits close to Atlas Obscura, which cuts both ways |
 | **Placenames** | Boring but honest and very searchable |
 
-My preference is **Toponomicon** for the wordmark with "the atlas of absurd place names" as the tagline. It rewards the curious, which is exactly our audience, and it is unmistakably ownable.
+My preference is **NameScape** for the wordmark with "the atlas of absurd place names" as the tagline. It rewards the curious, which is exactly our audience, and it is unmistakably ownable.

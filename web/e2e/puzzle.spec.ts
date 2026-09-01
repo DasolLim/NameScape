@@ -108,9 +108,9 @@ test('the share grid pastes into a plain text field as it was written', async ({
   const copied = await page.evaluate(() => navigator.clipboard.readText())
 
   // The format from the addendum, and nothing that spoils the answer.
-  expect(copied).toMatch(/^Toponomicon #\d+ · 1\/5/)
+  expect(copied).toMatch(/^NameScape #\d+ · 1\/5/)
   expect(copied).toContain('🟩')
-  expect(copied).toContain('toponomicon.app')
+  expect(copied).toContain('namescape.app')
   expect(copied).not.toContain(answer)
 
   // Pasted where it will actually be used: a plain textarea, no markup, no

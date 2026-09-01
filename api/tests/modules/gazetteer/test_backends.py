@@ -71,7 +71,7 @@ async def test_wikipedia_identifies_itself_or_wikimedia_refuses() -> None:
     agent = headers["User-Agent"]
     # Descriptive: a product name and a way to reach whoever runs it. The
     # default python-httpx agent is refused with a 403.
-    assert "Toponomicon" in agent
+    assert "NameScape" in agent
     assert "http" in agent
 
 
@@ -80,7 +80,7 @@ async def test_wikidata_identifies_itself_too() -> None:
 
     await backends.wikidata_etymology("Q42")
 
-    assert "Toponomicon" in FakeClient.constructed[0]["headers"]["User-Agent"]
+    assert "NameScape" in FakeClient.constructed[0]["headers"]["User-Agent"]
 
 
 async def test_only_a_sentence_about_the_name_is_returned() -> None:

@@ -1,6 +1,6 @@
-# Toponomicon — Product Requirements Document
+# NameScape — Product Requirements Document
 
-**Working title:** Toponomicon — *the atlas of absurd place names*
+**Working title:** NameScape — *the atlas of absurd place names*
 **Version:** 1.0 (finalized)
 **Date:** August 2026
 **Author:** David (Dasol Lim)
@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-Toponomicon is a shared 3D globe where people find, claim, and share real places with absurd names. Dildo in Newfoundland. Batman in Turkey. Truth or Consequences in New Mexico. Cockermouth, Ffynnongroyw, Boring, Dull.
+NameScape is a shared 3D globe where people find, claim, and share real places with absurd names. Dildo in Newfoundland. Batman in Turkey. Truth or Consequences in New Mexico. Cockermouth, Ffynnongroyw, Boring, Dull.
 
 Every place on the globe is real and every name shown is the true one. The play sits on top: users **discover** places (each place can be claimed exactly once, and the finder is credited permanently), and users **propose nicknames** that the community votes on. A nickname that wins its contest renders on the globe beneath the official name — never replacing it.
 

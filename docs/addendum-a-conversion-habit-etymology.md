@@ -1,6 +1,6 @@
-# Toponomicon — Addendum A: Conversion, Habit, Etymology
+# NameScape — Addendum A: Conversion, Habit, Etymology
 
-**Extends:** `toponomicon-prd.md` and `toponomicon-implementation-guide.md`
+**Extends:** `namescape-prd.md` and `namescape-implementation-guide.md`
 **Covers:** Guest claiming · Daily place puzzle · "What it actually means"
 **Version:** 1.0
 
@@ -128,10 +128,10 @@ Bearing as an arrow: ⬆️ ↗️ ➡️ ↘️ ⬇️ ↙️ ⬅️ ↖️
 ## 2.3 Share grid
 
 ```
-Toponomicon #142 · 3/5 · 🔥7
+NameScape #142 · 3/5 · 🔥7
 ⬜➡️  🟧↗️  🟩
 
-toponomicon.app
+namescape.app
 ```
 
 No spoilers in the text, which is what makes the format spreadable. Streak included because a visible streak is the cheapest retention mechanic available and it only costs an integer.

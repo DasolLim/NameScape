@@ -15,6 +15,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models import Place, Puzzle, PuzzleAttempt, Streak
 from app.modules import discoveries, puzzles
 from app.modules.puzzles import geo, play
@@ -316,7 +317,9 @@ async def test_the_share_grid_gives_nothing_away(db: AsyncSession) -> None:
     # It does say how it went: the number, the score, and the markers.
     assert "3/5" in grid
     assert grid.count("🟩") == 1
-    assert "toponomicon" in grid.casefold()
+    # The link has to be where the app actually is. It was hardcoded to a
+    # domain nobody had registered, so every shared grid pointed at nothing.
+    assert settings.app_base_url.split("//")[-1] in grid
 
 
 async def test_an_unsolved_grid_says_so_rather_than_pretending(

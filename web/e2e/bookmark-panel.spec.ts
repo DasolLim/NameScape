@@ -11,7 +11,7 @@ function sessionFor(username: string): string {
 
 test('the Bookmarks control opens the list and flies to a choice', async ({ page, context }) => {
   await context.addCookies([
-    { name: 'toponomicon_session', value: sessionFor('voter'), domain: 'localhost', path: '/' },
+    { name: 'namescape_session', value: sessionFor('voter'), domain: 'localhost', path: '/' },
   ])
   await page.goto('/')
   await expect(page.locator('canvas.maplibregl-canvas')).toBeVisible()

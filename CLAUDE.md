@@ -1,4 +1,4 @@
-# Toponomicon
+# NameScape
 
 The atlas of absurd place names. A shared 3D globe where users claim real gazetteer
 places with genuinely absurd real names, and propose nicknames the community votes
@@ -10,8 +10,8 @@ These are the spec of record. Read the relevant one before changing its area.
 
 | Doc | Authority over |
 |---|---|
-| `docs/toponomicon-prd.md` | Features, data model, API surface, module boundaries |
-| `docs/toponomicon-implementation-guide.md` | Build order — steps 0–23, one per commit |
+| `docs/namescape-prd.md` | Features, data model, API surface, module boundaries |
+| `docs/namescape-implementation-guide.md` | Build order — steps 0–23, one per commit |
 | `docs/design-system-and-brand.md` | Colour, type, motion, screen specs |
 | `docs/globe-map-architecture.md` | MapLibre globe, PMTiles, gazetteer, zones |
 

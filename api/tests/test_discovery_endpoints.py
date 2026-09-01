@@ -32,7 +32,7 @@ async def client(db: AsyncSession, fake_redis: FakeRedis) -> AsyncClient:
 
 
 async def sign_in(client: AsyncClient, user: User) -> None:
-    client.cookies.set("toponomicon_session", accounts_service._session_for(user).cookie)
+    client.cookies.set("namescape_session", accounts_service._session_for(user).cookie)
 
 
 async def test_a_place_reports_its_eligibility_and_claim_status(

@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_username: str = ""
     smtp_password: str = ""
-    smtp_from: str = "Toponomicon <no-reply@toponomicon.example>"
+    smtp_from: str = "NameScape <no-reply@namescape.example>"
     smtp_start_tls: bool = True
 
 

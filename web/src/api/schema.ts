@@ -290,6 +290,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cron/{job}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run Scheduled Job Get
+         * @description Vercel's scheduler invokes with GET. See run_scheduled_job.
+         */
+        get: operations["run_scheduled_job_get_api_cron__job__get"];
+        put?: never;
+        /**
+         * Run Scheduled Job
+         * @description Run one scheduled job. For platforms with no long-running process.
+         *
+         *     Declared for GET as well, because Vercel's scheduler invokes with GET and
+         *     does not follow redirects: POST alone would deploy cleanly and never run
+         *     once. Two endpoints rather than one multi-method route, because FastAPI
+         *     gives both methods of a multi-method route the same operation id, and the
+         *     generated frontend types then fail to compile on a duplicate identifier.
+         *
+         *     Also the way to force a job by hand, which is what makes a plan with
+         *     once-a-day cron usable: a contest can be resolved on demand rather than
+         *     waited for. Cron delivery is best effort and may miss a run or repeat one,
+         *     which is safe here: each job takes a Redis lock and each is idempotent.
+         *
+         *     Fails closed on an unset secret. These endpoints resolve contests and
+         *     release claims, so an open one would be a way to force either at will.
+         */
+        post: operations["run_scheduled_job_api_cron__job__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/viewport": {
         parameters: {
             query?: never;
@@ -491,6 +529,13 @@ export interface components {
             place_id: number;
             /** Status */
             status: string;
+        };
+        /** CronResult */
+        CronResult: {
+            /** Job */
+            job: string;
+            /** Changed */
+            changed: number;
         };
         /** DiscoveryResponse */
         DiscoveryResponse: {
@@ -977,7 +1022,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
-                toponomicon_guest?: string | null;
+                namescape_guest?: string | null;
             };
         };
         requestBody: {
@@ -1048,7 +1093,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
-                toponomicon_session?: string | null;
+                namescape_session?: string | null;
             };
         };
         requestBody?: never;
@@ -1199,7 +1244,7 @@ export interface operations {
                 place_id: number;
             };
             cookie?: {
-                toponomicon_session?: string | null;
+                namescape_session?: string | null;
             };
         };
         requestBody?: never;
@@ -1241,7 +1286,7 @@ export interface operations {
                 place_id: number;
             };
             cookie?: {
-                toponomicon_session?: string | null;
+                namescape_session?: string | null;
             };
         };
         requestBody: {
@@ -1330,8 +1375,8 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
-                toponomicon_session?: string | null;
-                toponomicon_guest?: string | null;
+                namescape_session?: string | null;
+                namescape_guest?: string | null;
             };
         };
         requestBody?: never;
@@ -1362,8 +1407,8 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
-                toponomicon_session?: string | null;
-                toponomicon_guest?: string | null;
+                namescape_session?: string | null;
+                namescape_guest?: string | null;
             };
         };
         requestBody: {
@@ -1452,8 +1497,8 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
-                toponomicon_session?: string | null;
-                toponomicon_guest?: string | null;
+                namescape_session?: string | null;
+                namescape_guest?: string | null;
             };
         };
         requestBody?: never;
@@ -1486,8 +1531,8 @@ export interface operations {
                 puzzle_id: number;
             };
             cookie?: {
-                toponomicon_session?: string | null;
-                toponomicon_guest?: string | null;
+                namescape_session?: string | null;
+                namescape_guest?: string | null;
             };
         };
         requestBody: {
@@ -1567,7 +1612,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
-                toponomicon_session?: string | null;
+                namescape_session?: string | null;
             };
         };
         requestBody?: never;
@@ -1601,6 +1646,104 @@ export interface operations {
             };
         };
     };
+    run_scheduled_job_get_api_cron__job__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CronResult"];
+                };
+            };
+            /** @description Not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_scheduled_job_api_cron__job__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CronResult"];
+                };
+            };
+            /** @description Not signed in */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_viewport_api_viewport_get: {
         parameters: {
             query: {
@@ -1613,7 +1756,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
-                toponomicon_session?: string | null;
+                namescape_session?: string | null;
             };
         };
         requestBody?: never;
@@ -1646,7 +1789,7 @@ export interface operations {
                 place_id: number;
             };
             cookie?: {
-                toponomicon_session?: string | null;
+                namescape_session?: string | null;
             };
         };
         requestBody?: never;
@@ -1722,7 +1865,7 @@ export interface operations {
                 place_id: number;
             };
             cookie?: {
-                toponomicon_session?: string | null;
+                namescape_session?: string | null;
             };
         };
         requestBody?: never;
@@ -1787,7 +1930,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
-                toponomicon_session?: string | null;
+                namescape_session?: string | null;
             };
         };
         requestBody?: never;
@@ -1827,7 +1970,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
-                toponomicon_session?: string | null;
+                namescape_session?: string | null;
             };
         };
         requestBody: {
@@ -1898,7 +2041,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
-                toponomicon_session?: string | null;
+                namescape_session?: string | null;
             };
         };
         requestBody: {
@@ -1987,7 +2130,7 @@ export interface operations {
                 place_id: number;
             };
             cookie?: {
-                toponomicon_session?: string | null;
+                namescape_session?: string | null;
             };
         };
         requestBody?: never;
@@ -2018,7 +2161,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
-                toponomicon_session?: string | null;
+                namescape_session?: string | null;
             };
         };
         requestBody?: never;

@@ -42,7 +42,7 @@ async def client(db: AsyncSession, fake_redis: FakeRedis) -> AsyncClient:
 
 async def sign_in(client: AsyncClient, db: AsyncSession, username: str = "reader") -> None:
     user = await build_user(db, username=username)
-    client.cookies.set("toponomicon_session", accounts_service._session_for(user).cookie)
+    client.cookies.set("namescape_session", accounts_service._session_for(user).cookie)
 
 
 async def test_a_sourced_etymology_arrives_with_its_confidence_and_source(

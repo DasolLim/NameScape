@@ -1,10 +1,10 @@
-# Toponomicon
+# NameScape
 
 **The atlas of absurd place names.** A shared 3D globe where people claim real
 gazetteer places with genuinely absurd real names, propose nicknames the
 community votes on, and find out what those names actually mean.
 
-🌍 **Live (development):** [toponomicon.vercel.app](https://toponomicon.vercel.app)
+🌍 **Live (development):** [namescape.vercel.app](https://namescape.vercel.app)
 
 A winning nickname renders *beneath* the official name, never replacing it. The
 map shows everything: eligibility gates claiming and nominating, never display.
@@ -323,8 +323,8 @@ The specs of record. Read the relevant one before changing its area.
 
 | Doc | Authority over |
 |---|---|
-| `docs/toponomicon-prd.md` | Features, data model, API surface, module boundaries |
-| `docs/toponomicon-implementation-guide.md` | Build order, one step per commit |
+| `docs/namescape-prd.md` | Features, data model, API surface, module boundaries |
+| `docs/namescape-implementation-guide.md` | Build order, one step per commit |
 | `docs/addendum-a-conversion-habit-etymology.md` | Guest claiming, the puzzle, etymology |
 | `docs/design-system-and-brand.md` | Colour, type, motion, screen specs |
 | `docs/globe-map-architecture.md` | MapLibre globe, PMTiles, gazetteer, zones |

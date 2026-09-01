@@ -1,6 +1,6 @@
-# Toponomicon — Claude Code Implementation Guide
+# NameScape — Claude Code Implementation Guide
 
-Companion to `toponomicon-prd.md`. Every step is a self-contained prompt, in order, structured around red → green → refactor.
+Companion to `namescape-prd.md`. Every step is a self-contained prompt, in order, structured around red → green → refactor.
 
 ---
 
@@ -21,10 +21,10 @@ Companion to `toponomicon-prd.md`. Every step is a self-contained prompt, in ord
 **Never accept a test that passed on first run.** A test that has never been red proves nothing about the code — it may be asserting something already true, or nothing at all.
 
 ```bash
-mkdir toponomicon && cd toponomicon
+mkdir namescape && cd namescape
 git init
 mkdir docs
-# copy toponomicon-prd.md, design-system-and-brand.md, globe-map-architecture.md into docs/
+# copy namescape-prd.md, design-system-and-brand.md, globe-map-architecture.md into docs/
 claude
 ```
 
@@ -37,7 +37,7 @@ Nothing else starts until all three loops are closed. This phase is the highest-
 ## Step 0: Project context
 
 ```
-Read docs/toponomicon-prd.md in full, plus docs/globe-map-architecture.md
+Read docs/namescape-prd.md in full, plus docs/globe-map-architecture.md
 and docs/design-system-and-brand.md.
 
 Create CLAUDE.md at the repo root. It must contain:

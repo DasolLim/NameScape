@@ -19,7 +19,7 @@ _TIMEOUT: Final = 2.0
 #: politeness: without it, every Wikidata and Wikipedia lookup fails and the
 #: citable half of the etymology chain silently falls through to the model.
 #: Their policy asks for a product name and a way to make contact.
-_WIKI_HEADERS: Final = {"User-Agent": "Toponomicon/0.1 (+https://github.com/DasolLim/FindPlaces)"}
+_WIKI_HEADERS: Final = {"User-Agent": "NameScape/0.1 (+https://github.com/DasolLim/FindPlaces)"}
 #: How close a Photon hit must land to a gazetteer record to be the same place.
 _PHOTON_MATCH_METRES: Final = 25_000
 

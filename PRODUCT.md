@@ -6,7 +6,7 @@ product
 
 ## Users
 
-Four audiences, in the proportions the PRD sets out (docs/toponomicon-prd.md §4):
+Four audiences, in the proportions the PRD sets out (docs/namescape-prd.md §4):
 
 - **The Browser (~55%)** — arrived from a shared link. Spins the globe, taps a few pins, reads captions. Context: idle minutes on a phone. Success is that the globe is fun to touch and nothing blocks them. They are not signed in and must never be forced to be.
 - **The Collector (~25%)** — wants stamps in a passport and country completion. Success is that first-finder credit reads as scarce and visible.

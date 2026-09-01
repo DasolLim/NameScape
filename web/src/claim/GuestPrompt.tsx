@@ -16,7 +16,7 @@ interface GuestPromptProps {
  * also why "Later" is spelled out instead of hidden behind a cross.
  *
  * The copy names what is at stake rather than what the product wants. "Sign up
- * for Toponomicon" is about us. "Dildo is yours, keep it" is about them.
+ * for NameScape" is about us. "Dildo is yours, keep it" is about them.
  */
 export default function GuestPrompt({ placeName, expiresAt, onDismiss }: GuestPromptProps) {
   const openSignIn = useAuth((state) => state.openSignIn)

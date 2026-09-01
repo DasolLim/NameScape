@@ -75,7 +75,7 @@ def test_it_is_off_by_default_so_serverless_is_safe_without_configuring_anything
         ("postgresql+asyncpg://u:p@aws-0-us-west-2.pooler.supabase.com:6543/postgres", True),
         ("postgresql+asyncpg://u:p@aws-0-us-west-2.pooler.supabase.com:5432/postgres", False),
         ("postgresql+asyncpg://u:p@db.abc.supabase.co:5432/postgres", False),
-        ("postgresql+asyncpg://u:p@localhost:55432/toponomicon", False),
+        ("postgresql+asyncpg://u:p@localhost:55432/namescape", False),
     ],
 )
 def test_only_the_transaction_pooler_is_treated_as_pooled(url: str, pooled: bool) -> None:
@@ -96,7 +96,7 @@ def test_a_pooled_connection_disables_the_prepared_statement_cache() -> None:
 
 
 def test_a_direct_connection_keeps_its_cache() -> None:
-    assert db.connect_args_for("postgresql+asyncpg://u:p@localhost:55432/toponomicon") == {}
+    assert db.connect_args_for("postgresql+asyncpg://u:p@localhost:55432/namescape") == {}
 
 
 def test_migrations_target_a_connection_that_has_prepared_statements() -> None:
