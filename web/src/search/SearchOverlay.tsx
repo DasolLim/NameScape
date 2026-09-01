@@ -151,7 +151,7 @@ export default function SearchOverlay({ onSelect }: SearchOverlayProps) {
           setBroadened(false)
         }}
         onKeyDown={onKeyDown}
-        placeholder="Dildo, Batman, Truth or Consequences…"
+        placeholder="Boring, Batman, Truth or Consequences…"
         className="w-full rounded-control bg-ink-900 px-3.5 py-2.5 text-sm text-parchment-50 ring-1 ring-brass-700/70 outline-none placeholder:text-parchment-600"
       />
 
