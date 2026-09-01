@@ -2,6 +2,9 @@
   "name": "web",
   "private": true,
   "version": "0.0.0",
+  "description": "NameScape: the atlas of absurd place names",
+  "author": "Dasol Lim",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -5,6 +5,7 @@ gazetteer places with genuinely absurd real names, propose nicknames the
 community votes on, and find out what those names actually mean.
 
 🌍 **Live (development):** [namescape.vercel.app](https://namescape.vercel.app)
+👤 **By Dasol Lim** · © 2026, all rights reserved
 
 A winning nickname renders *beneath* the official name, never replacing it. The
 map shows everything: eligibility gates claiming and nominating, never display.
@@ -352,7 +353,19 @@ The specs of record. Read the relevant one before changing its area.
 
 ---
 
+## Licence and ownership
+
+**Copyright © 2026 Dasol Lim. All rights reserved.**
+
+The source code, design, copy and schema in this repository are proprietary.
+See [LICENSE](LICENSE). Nothing here is open source at present — that is a
+deliberate default rather than a decision, because a permissive licence can be
+granted later but cannot be withdrawn from copies already made.
+
 ## Data attribution
+
+The product is built on open data that belongs to other people, and the
+copyright above claims none of it:
 
 - Place data from [GeoNames](https://www.geonames.org/) (CC BY 4.0)
 - Basemap from [OpenFreeMap](https://openfreemap.org/) and
@@ -360,3 +373,6 @@ The specs of record. Read the relevant one before changing its area.
   © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
 - Etymology from [Wikidata](https://www.wikidata.org/) and
   [Wikipedia](https://www.wikipedia.org/) (CC BY-SA)
+
+Redistributing data derived from these sources carries their terms with it,
+including the share-alike obligations ODbL places on derived databases.

@@ -2,6 +2,8 @@
 name = "namescape-api"
 version = "0.1.0"
 description = "NameScape API"
+authors = [{ name = "Dasol Lim" }]
+license = { text = "Proprietary. Copyright (c) 2026 Dasol Lim. All rights reserved." }
 # Upper bound removed: Vercel's Python runtime is 3.13/3.14.
 requires-python = ">=3.12"
 dependencies = [

@@ -1,0 +1,37 @@
+Copyright © 2026 Dasol Lim. All rights reserved.
+
+NameScape — the atlas of absurd place names.
+
+
+WHAT THIS COVERS
+
+The source code, design, written copy, and database schema in this
+repository are the work of Dasol Lim.
+
+No permission is granted to copy, modify, distribute, or use this software,
+in whole or in part, without the express written permission of the copyright
+holder. Viewing the source for the purpose of evaluation is permitted.
+
+This is a deliberately restrictive default. It preserves every option: a
+permissive licence such as MIT or Apache-2.0 can be granted later, whereas a
+permissive licence once published cannot be withdrawn from copies already
+made.
+
+
+WHAT THIS DOES NOT COVER
+
+This product is built on open data that belongs to other people, and no
+claim is made over any of it:
+
+  Place data          GeoNames, licensed CC BY 4.0
+                      https://creativecommons.org/licenses/by/4.0/
+
+  Basemap and tiles   OpenStreetMap contributors, licensed ODbL 1.0, served
+                      via OpenFreeMap and OpenMapTiles
+                      https://opendatacommons.org/licenses/odbl/1-0/
+
+  Etymology sources   Wikidata and Wikipedia, licensed CC BY-SA
+
+Anyone redistributing data derived from these sources remains bound by their
+terms, including the share-alike obligations ODbL places on derived
+databases. Third-party dependencies are covered by their own licences.
