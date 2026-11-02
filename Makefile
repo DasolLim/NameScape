@@ -86,7 +86,7 @@ migrate: up  ## Apply alembic migrations
 	@cd $(API) && uv run alembic upgrade head
 
 loadtest: up  ## Load profile for search and viewport (needs the API running)
-	@cd $(API) && uv run locust -f loadtest/locustfile.py --headless \
+	@cd $(API) && uv run locust -f tests/load/locustfile.py --headless \
 	  --users 60 --spawn-rate 20 --run-time 30s --host http://localhost:8000 --only-summary
 
 e2e:  ## Playwright end-to-end suite, including the accessibility audit
