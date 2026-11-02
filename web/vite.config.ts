@@ -59,6 +59,23 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), maplibreWorker()],
   // MapLibre ships a web worker the dep optimizer cannot pre-bundle.
   optimizeDeps: { exclude: ['maplibre-gl'] },
+  build: {
+    // MapLibre alone is ~940 kB minified (245 kB gzip). It is one library,
+    // not a bundle that grew by accident.
+    chunkSizeWarningLimit: 1000,
+    rolldownOptions: {
+      output: {
+        // Vendor code changes far less often than ours. In chunks of its own
+        // it stays cached across deploys instead of being refetched each time.
+        codeSplitting: {
+          groups: [
+            { name: 'maplibre', test: /node_modules[\\/]maplibre-gl/ },
+            { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler|zustand)[\\/]/ },
+          ],
+        },
+      },
+    },
+  },
   server: {
     proxy: { '/api': 'http://localhost:8000' },
   },

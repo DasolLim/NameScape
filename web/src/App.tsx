@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 
 import { fetchHealth, type Health } from './api/health'
 import { fetchPlace, type PlaceDetail } from './api/places'
@@ -8,7 +8,6 @@ import { fetchViewport, toLayerState } from './api/viewport'
 import { completeSignInFromUrl } from './auth/completeSignIn'
 import SignInSheet from './auth/SignInSheet'
 import { useAuth } from './auth/store'
-import BookmarkList from './bookmarks/BookmarkList'
 import BookmarkStar from './bookmarks/BookmarkStar'
 import type { Layers } from './chrome/LayersMenu'
 import TopBar from './chrome/TopBar'
@@ -17,9 +16,12 @@ import ContestBoard from './contests/ContestBoard'
 import EtymologyPanel from './etymology/EtymologyPanel'
 import GlobeCanvas from './scene/GlobeCanvas'
 import type { GlobeHandle, PlaceRef } from './globe'
-import Passport from './passport/Passport'
-import PuzzlePanel from './puzzle/PuzzlePanel'
 import Starfield from './scene/Starfield'
+
+// Opened on demand, so they load on first open rather than with the globe.
+const BookmarkList = lazy(() => import('./bookmarks/BookmarkList'))
+const Passport = lazy(() => import('./passport/Passport'))
+const PuzzlePanel = lazy(() => import('./puzzle/PuzzlePanel'))
 
 function toPlaceRef(place: SearchResult): PlaceRef {
   const featureClass = place.feature_class
@@ -131,53 +133,55 @@ export default function App() {
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center gap-3 overflow-y-auto p-4">
           <SignInSheet />
 
-          {puzzleOpen && (
-            <div className="pointer-events-auto w-[min(26rem,92vw)] text-left">
-              <PuzzlePanel
-                onFocusPlace={(at) => {
-                  // The globe module owns the map; this asks it to look.
-                  void globe.current?.focusOn({
-                    id: 'puzzle-pin',
-                    lon: at.lon,
-                    lat: at.lat,
-                    featureClass: 'P',
-                  })
-                }}
-                onClaim={(placeId) => {
-                  void fetchPlace(placeId)
-                    .then((found) => {
-                      setPlace(found)
-                      setPuzzleOpen(false)
+          <Suspense fallback={null}>
+            {puzzleOpen && (
+              <div className="pointer-events-auto w-[min(26rem,92vw)] text-left">
+                <PuzzlePanel
+                  onFocusPlace={(at) => {
+                    // The globe module owns the map; this asks it to look.
+                    void globe.current?.focusOn({
+                      id: 'puzzle-pin',
+                      lon: at.lon,
+                      lat: at.lat,
+                      featureClass: 'P',
                     })
-                    .catch(() => undefined)
-                }}
-              />
-            </div>
-          )}
+                  }}
+                  onClaim={(placeId) => {
+                    void fetchPlace(placeId)
+                      .then((found) => {
+                        setPlace(found)
+                        setPuzzleOpen(false)
+                      })
+                      .catch(() => undefined)
+                  }}
+                />
+              </div>
+            )}
 
-          {bookmarksOpen && user && (
-            <div className="pointer-events-auto">
-              <BookmarkList
-                onClose={() => setBookmarksOpen(false)}
-                showOnGlobe={layers.bookmarks}
-                onToggleGlobe={(bookmarks) => onLayersChange({ ...layers, bookmarks })}
-                onSelect={(saved) => {
-                  void globe.current?.focusOn({
-                    id: String(saved.place_id),
-                    lon: saved.lon,
-                    lat: saved.lat,
-                    featureClass: 'P',
-                  })
-                }}
-              />
-            </div>
-          )}
+            {bookmarksOpen && user && (
+              <div className="pointer-events-auto">
+                <BookmarkList
+                  onClose={() => setBookmarksOpen(false)}
+                  showOnGlobe={layers.bookmarks}
+                  onToggleGlobe={(bookmarks) => onLayersChange({ ...layers, bookmarks })}
+                  onSelect={(saved) => {
+                    void globe.current?.focusOn({
+                      id: String(saved.place_id),
+                      lon: saved.lon,
+                      lat: saved.lat,
+                      featureClass: 'P',
+                    })
+                  }}
+                />
+              </div>
+            )}
 
-          {passportOpen && user && (
-            <div className="pointer-events-auto">
-              <Passport username={user.username} onClose={() => setPassportOpen(false)} />
-            </div>
-          )}
+            {passportOpen && user && (
+              <div className="pointer-events-auto">
+                <Passport username={user.username} onClose={() => setPassportOpen(false)} />
+              </div>
+            )}
+          </Suspense>
 
           {place && (
             <div className="pointer-events-auto w-[min(26rem,92vw)] text-left">
