@@ -15,11 +15,11 @@ import TopBar from './chrome/TopBar'
 import ClaimSheet, { type HeldClaim } from './claim/ClaimSheet'
 import ContestBoard from './contests/ContestBoard'
 import EtymologyPanel from './etymology/EtymologyPanel'
-import GlobeCanvas from './GlobeCanvas'
+import GlobeCanvas from './scene/GlobeCanvas'
 import type { GlobeHandle, PlaceRef } from './globe'
 import Passport from './passport/Passport'
 import PuzzlePanel from './puzzle/PuzzlePanel'
-import Starfield from './Starfield'
+import Starfield from './scene/Starfield'
 
 function toPlaceRef(place: SearchResult): PlaceRef {
   const featureClass = place.feature_class

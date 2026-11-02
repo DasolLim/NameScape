@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-import { createGlobe, type GlobeHandle } from './globe'
+import { createGlobe, type GlobeHandle } from '../globe'
 
 interface GlobeCanvasProps {
   onReady?: (globe: GlobeHandle) => void
