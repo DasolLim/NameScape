@@ -4,7 +4,7 @@
 **Version:** 1.0 (finalized)
 **Date:** August 2026
 **Author:** David (Dasol Lim)
-**Companion docs:** `design-system-and-brand.md`, `globe-map-architecture.md`
+**Companion docs:** `../design/design-system.md`, `../engineering/globe-architecture.md`
 
 ---
 

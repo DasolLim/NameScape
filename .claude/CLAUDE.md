@@ -10,10 +10,10 @@ These are the spec of record. Read the relevant one before changing its area.
 
 | Doc | Authority over |
 |---|---|
-| `docs/namescape-prd.md` | Features, data model, API surface, module boundaries |
-| `docs/namescape-implementation-guide.md` | Build order — steps 0–23, one per commit |
-| `docs/design-system-and-brand.md` | Colour, type, motion, screen specs |
-| `docs/globe-map-architecture.md` | MapLibre globe, PMTiles, gazetteer, zones |
+| `docs/product/prd.md` | Features, data model, API surface, module boundaries |
+| `docs/engineering/implementation-guide.md` | Build order — steps 0–23, one per commit |
+| `docs/design/design-system.md` | Colour, type, motion, screen specs |
+| `docs/engineering/globe-architecture.md` | MapLibre globe, PMTiles, gazetteer, zones |
 
 Where the PRD and the implementation guide disagree on **ordering**, the guide wins.
 Where the PRD and the design doc disagree on a **visual detail**, the design doc wins.

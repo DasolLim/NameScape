@@ -1,6 +1,6 @@
 # NameScape — Claude Code Implementation Guide
 
-Companion to `namescape-prd.md`. Every step is a self-contained prompt, in order, structured around red → green → refactor.
+Companion to `../product/prd.md`. Every step is a self-contained prompt, in order, structured around red → green → refactor.
 
 ---
 
@@ -24,7 +24,7 @@ Companion to `namescape-prd.md`. Every step is a self-contained prompt, in order
 mkdir namescape && cd namescape
 git init
 mkdir docs
-# copy namescape-prd.md, design-system-and-brand.md, globe-map-architecture.md into docs/
+# copy prd.md, design-system.md, globe-architecture.md into docs/
 claude
 ```
 
@@ -37,8 +37,8 @@ Nothing else starts until all three loops are closed. This phase is the highest-
 ## Step 0: Project context
 
 ```
-Read docs/namescape-prd.md in full, plus docs/globe-map-architecture.md
-and docs/design-system-and-brand.md.
+Read docs/product/prd.md in full, plus docs/engineering/globe-architecture.md
+and docs/design/design-system.md.
 
 Create CLAUDE.md at the repo root. It must contain:
 

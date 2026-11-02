@@ -1,6 +1,6 @@
 # NameScape — Addendum A: Conversion, Habit, Etymology
 
-**Extends:** `namescape-prd.md` and `namescape-implementation-guide.md`
+**Extends:** `prd.md` and `../engineering/implementation-guide.md`
 **Covers:** Guest claiming · Daily place puzzle · "What it actually means"
 **Version:** 1.0
 

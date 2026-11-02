@@ -150,9 +150,11 @@ NameScape/
 │   │   │                    eligibility, gazetteer, moderation, puzzles, viewport
 │   │   ├── models.py        Database models
 │   │   └── scheduler.py     Background jobs
+│   ├── data/                Countries, blocklist, name elements, zones
 │   ├── migrations/          Alembic migrations
 │   ├── scripts/             Data import and puzzle tools
-│   └── tests/
+│   ├── tests/               Unit, endpoint and load tests
+│   └── index.py             Vercel serverless entry point
 ├── web/                     React frontend
 │   ├── src/
 │   │   ├── globe/           MapLibre wrapper (the only map code)
@@ -160,8 +162,15 @@ NameScape/
 │   │   ├── api/             API client + generated schema.ts
 │   │   └── <feature>/       auth, claim, contests, etymology, puzzle, …
 │   └── e2e/                 Playwright tests
+├── docs/
+│   ├── product/             Product spec, addendum, audience and voice
+│   ├── design/              Design system and visual language
+│   ├── engineering/         Globe architecture, implementation guide
+│   └── images/              Screenshots
 ├── infra/                   Docker Compose for local services
-└── docs/                    Product spec, design system, architecture, images
+├── .github/workflows/       CI
+├── Makefile                 Dev, test and deploy commands
+└── vercel.json              Hosting, routing and cron
 ```
 
 ---
@@ -276,11 +285,11 @@ vercel deploy --prod
 
 | Document | Covers |
 |---|---|
-| [Product spec](docs/namescape-prd.md) | Features, data model, API |
-| [Implementation guide](docs/namescape-implementation-guide.md) | Build order |
-| [Addendum A](docs/addendum-a-conversion-habit-etymology.md) | Guest claims, puzzle, etymology |
-| [Design system](docs/design-system-and-brand.md) | Colour, type, motion |
-| [Globe architecture](docs/globe-map-architecture.md) | Map, tiles, gazetteer, zones |
+| [Product spec](docs/product/prd.md) | Features, data model, API |
+| [Implementation guide](docs/engineering/implementation-guide.md) | Build order |
+| [Addendum A](docs/product/addendum-a.md) | Guest claims, puzzle, etymology |
+| [Design system](docs/design/design-system.md) | Colour, type, motion |
+| [Globe architecture](docs/engineering/globe-architecture.md) | Map, tiles, gazetteer, zones |
 
 </details>
 

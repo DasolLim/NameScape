@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* The design system, as tokens rather than arbitrary values repeated per
-   file. Every colour below is from DESIGN.md; nothing here is invented. */
+   file. Every colour below is from docs/design/visual-language.md; nothing here is invented. */
 @theme {
   /* Ink - surfaces. Elevation comes from this ramp, never from shadows:
      shadows on near-black are mud. */
